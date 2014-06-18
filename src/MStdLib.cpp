@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.53 copyright Comine.com 20140518U0936
+//v1.54 copyright Comine.com 20140617T0120
 /*
 Bug Notice:
 	MStdSPrintf(const wchar_t *)  seems to be failing.
@@ -2111,6 +2111,14 @@ bool MStdIsNan(double val)
 
 	#endif 
 
+	return false;
+	}
+
+
+//////////////////////////////////////////////////////
+bool MStdIsFinite(double val)
+	{
+	if(isfinite(val)) { return true; }
 	return false;
 	}
 
