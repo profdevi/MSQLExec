@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.1 copyright Comine.com 20060205U14
+//v2.0 copyright Comine.com 20150810M1158
 #include "MStdLib.h"
 #include "MString.h"
 #include "MStringArray.h"

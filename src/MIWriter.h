@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.2 copyright Comine.com 20110330W22
+//v2.0 copyright Comine.com 20150810M0909
 #ifndef MIWRITER_H
 #define MIWRITER_H
 

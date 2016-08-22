@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.24 copyright Comine.com 20140518U0936
+//v2.2 copyright Comine.com 20151212S0010
 #ifndef TVector_h
 #define TVector_h
 
@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MIWriter.h"
 
 ////////////////////////////////////////////
-template <class Data>
+template <typename Data>
 class TVector
 	{
 	Data *mArray;
@@ -306,6 +306,58 @@ class TVector
 			{
 			target[i] = mArray[i];
 			}
+
+		return true;
+		}
+
+	///////////////////////////////////////
+	// Reverse the array contents
+	bool Reverse(void)
+		{
+		int begin,end;
+		begin=0;
+		end=mCount-1;
+		while(begin<end)
+			{
+			if(Swap(begin,end)==false)
+				{
+				return false;
+				}
+
+			begin = begin + 1;
+			end = end - 1;
+			}
+
+		return true;
+		}
+
+
+	///////////////////////////////////////
+	bool Resize(int newsize)
+		{
+		MStdAssert(newsize>0);
+		Data *newarray;
+		newarray = new(std::nothrow) Data[newsize];
+		if(newarray==NULL)
+			{
+			return false;
+			}
+		
+		// Copy Old Data to new Memory
+		const int mincopylength=MStdGetMin(newsize,mCount);
+		int i;
+		for(i=0;i<mincopylength;++i)
+			{
+			// Copy Constructor
+			newarray[i] = mArray[i];
+			}
+
+		// Release old objects and memory
+		delete[] mArray;
+
+		// Point to new array
+		mArray=newarray;
+		mCount=newsize;
 
 		return true;
 		}

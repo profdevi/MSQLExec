@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.4 copyright Comine.com 20140531S1035
+//v1.5 copyright Comine.com 20160822M0121
 #include "MStdLib.h"
 #include "MBuffer.h"
 #include "MDynamicString.h"

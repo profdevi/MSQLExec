@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.2 copyright Comine.com 20140531S1044
+//v3.1 copyright Comine.com 20160822M0122
 #include "MStdLib.h"
 #include "MFile.h"
 #include "MSQLExec.h"

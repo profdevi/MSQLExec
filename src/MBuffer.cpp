@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.29 copyright Comine.com 20140518U0936
+//v2.1 copyright Comine.com 20150912S0722
 #include "MStdLib.h"
 #include "MString.h"
 #include "MBuffer.h"
@@ -245,6 +245,67 @@ bool MBuffer::StringAppend(const char *string)
 
 
 ///////////////////////////////////////////////
+bool MBuffer::CharAppend(char data)
+	{
+	for(int i=0;i<mSize-1;++i)
+		{
+		if(mBuffer[i]==0)
+			{
+			mBuffer[i]=data;
+			mBuffer[i+1]=0;
+			return true;
+			}
+		}
+	
+	return false;
+	}
+
+
+////////////////////////////////////////////////////
+bool MBuffer::StringPrepend(const char *str)
+	{
+	MStdAssert(str!=0);
+	const int strlength=GetStringLength();
+	const int newstrlength=MStdStrLen(str);
+	if(strlength+newstrlength>=mSize)
+		{
+		return false;
+		}
+
+	for(int i=strlength;i>=0;--i)
+		{
+		mBuffer[i+newstrlength] = mBuffer[i];
+		}
+
+	for(int i=0;i<newstrlength;++i)
+		{
+		mBuffer[i] = str[i];
+		}
+	
+	return true;
+	}
+
+
+////////////////////////////////////////////////////
+bool MBuffer::CharPrepend(char data)
+	{
+	const int strlength = GetStringLength();
+	if(strlength+1>=mSize)
+		{
+		return false;
+		}
+
+	for(int i=strlength;i>=0;--i)
+		{
+		mBuffer[i+1]=mBuffer[i];
+		}
+
+	mBuffer[0] = data;
+	return true;
+	}
+
+
+///////////////////////////////////////////////
 bool MBuffer::operator=(const MBuffer &ref)
 	{  return Create(ref);  }
 
@@ -413,6 +474,48 @@ bool MBuffer::TrimRight(void)
 			{  return true;  }
 
 		mBuffer[i]=0;
+		}
+
+	return true;
+	}
+
+
+///////////////////////////////////////////////////////////////
+bool MBuffer::GetSubString(int start, int length, MBuffer &bufout, int requestoutsize)
+	{
+	MStdAssert(length>0 && start>=0 && start<mSize);
+	if(length+1>requestoutsize)
+		{
+		requestoutsize=length+1;
+		}
+
+	if(bufout.Create(requestoutsize)==false)
+		{
+		return false;
+		}
+
+	int index=0;
+	for(index=0;index<length;++index)
+		{
+		bufout.mBuffer[index] = mBuffer[index+start];
+
+		// Dont copy beyond zero '\0'
+		if(mBuffer[index+start]==0) { break; }
+		}
+
+	bufout.mBuffer[index]=0;
+	return true;
+	}
+
+
+/////////////////////////////////////////////////////////////////
+bool MBuffer::StrRemove(int length)
+	{
+	MStdAssert(length>=0 && length<mSize-1);
+	for(int i=length;i<mSize;++i)
+		{
+		mBuffer[i-length] = mBuffer[i];
+		if(mBuffer[i]==0) { break; }
 		}
 
 	return true;

@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.29 copyright Comine.com 20140518U0936
+//v2.1 copyright Comine.com 20150912S0722
 #ifndef MBuffer_h
 #define MBuffer_h
 
@@ -66,6 +66,9 @@ class MBuffer
 	char &operator [](int index);				// Array [] operator
 	bool StringClear(void);						// Sets ""
 	bool StringAppend(const char *string);		// Append a string
+	bool CharAppend(char data);					// Append a char data
+	bool StringPrepend(const char *string);		// Prepend String before string
+	bool CharPrepend(char data);				// Prepend data before string
 	bool operator=(const MBuffer &ref);			// Assignment operator
 	bool ConvertWideToAscii(void);				// Convert the string from Wide to Ascii
 	bool ConvertAsciiToWide(void);				// COnvert the string from ascii to wide
@@ -77,6 +80,8 @@ class MBuffer
 	int Search(int start,const char *value,int len);	// =Return index of search value and len
 	int ISearch(int start,const char *value,int len);	// =Return index of search value and len
 	bool TrimRight(void);						// Remove Extra Spaces on right side
+	bool GetSubString(int start,int length,MBuffer &out,int requestoutsize=0);	// Get Sub String and place into new MBuffer
+	bool StrRemove(int length);					// Remove the first n characters
 	};
 
 #endif // MBuffer_h

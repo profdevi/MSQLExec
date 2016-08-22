@@ -30,12 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.2 copyright Comine.com 20140518U0936
+//v2.0 copyright Comine.com 20150810M1103
 #include "MStdLib.h"
 #include "TAutoPtr.h"
 
-
-//******************************************************
-//**  Module Elements
-//******************************************************
 

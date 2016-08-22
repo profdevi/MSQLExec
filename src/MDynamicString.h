@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.8 copyright Comine.com 20060220M14
+//v1.9 copyright Comine.com 20150813R1125
 #ifndef MDynamicString_h
 #define MDynamicString_h
 

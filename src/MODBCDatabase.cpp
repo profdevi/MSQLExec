@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v2.7  copyright Comine.com 20140531S1820
+//v2.8  copyright Comine.com 20160822M0124
 #include "MStdLib.h"
 #include <windows.h>
 #include <sqlext.h>
@@ -780,7 +780,7 @@ bool MODBCStatement::PutData(void *data,int len)
 bool MODBCStatement::Tables(const char *name,const char *type)
 	{ 
 	SQLRETURN ret;
-	ret=SQLTablesA(hStatement, NULL, 0, NULL, 0,(SQLCHAR*)name,strlen(name)
+	ret=SQLTablesA(hStatement, NULL, 0, NULL, 0,(SQLCHAR*)name,(SQLSMALLINT)strlen(name)
 			,(SQLCHAR*)type,SQL_NTS);
 	
 	if(SQL_SUCCEEDED(ret)) { return true; }
@@ -794,7 +794,7 @@ bool MODBCStatement::Tables(const char *name,const char *type)
 bool MODBCStatement::Columns(const char *tablename,const char *colpattern)
 	{  SQLRETURN ret;
 	ret=SQLColumnsA(hStatement, NULL, 0, NULL, 0,(SQLCHAR*)tablename,SQL_NTS
-			,(SQLCHAR*)colpattern,strlen(colpattern));
+			,(SQLCHAR*)colpattern,(SQLSMALLINT)strlen(colpattern));
 	if(SQL_SUCCEEDED(ret)) { return true; }
 
 	SetError(hStatement);
@@ -806,7 +806,8 @@ bool MODBCStatement::Columns(const char *tablename,const char *colpattern)
 /////////////////////////////////////////////////////
 bool MODBCStatement::PrimaryKeys(const char *tablename)
 	{  SQLRETURN ret;
-	ret=SQLPrimaryKeys(hStatement, NULL, 0, NULL, 0,(SQLTCHAR*)tablename,strlen(tablename));
+	ret=SQLPrimaryKeys(hStatement, NULL, 0, NULL, 0,(SQLTCHAR*)tablename
+			,(SQLSMALLINT)strlen(tablename));
 	if(SQL_SUCCEEDED(ret)) { return true; }
 
 	SetError(hStatement);
@@ -818,7 +819,8 @@ bool MODBCStatement::PrimaryKeys(const char *tablename)
 bool MODBCStatement::Procedures(const char *pattern)
 	{
 	SQLRETURN ret;
-	ret=SQLProcedures(hStatement, NULL, 0, NULL, 0,(SQLTCHAR*)pattern,strlen(pattern));
+	ret=SQLProcedures(hStatement, NULL, 0, NULL, 0,(SQLTCHAR*)pattern
+			,(SQLSMALLINT)strlen(pattern));
 	if(SQL_SUCCEEDED(ret)) { return true; }
 
 	SetError(hStatement);
@@ -830,8 +832,8 @@ bool MODBCStatement::Procedures(const char *pattern)
 bool MODBCStatement::ProcedureColumns(const char *tablename,const char *colpattern)
 	{   SQLRETURN ret;
 	ret=SQLProcedureColumnsA(hStatement, NULL, 0, NULL, 0
-			,(SQLCHAR*)tablename,strlen(tablename)
-			,(SQLCHAR*)colpattern,strlen(colpattern));
+			,(SQLCHAR*)tablename,(SQLSMALLINT)strlen(tablename)
+			,(SQLCHAR*)colpattern,(SQLSMALLINT)strlen(colpattern));
 	if(SQL_SUCCEEDED(ret)) { return true; }
 
 	SetError(hStatement);
@@ -842,8 +844,8 @@ bool MODBCStatement::ProcedureColumns(const char *tablename,const char *colpatte
 ///////////////////////////////////////////////////
 bool MODBCStatement::ForeignKeys(const char *tablename)
 	{   SQLRETURN ret;
-	ret=SQLForeignKeysA(hStatement, NULL, 0, NULL, 0,(SQLCHAR*)tablename,strlen(tablename)
-				,NULL,0,NULL,0,NULL,0);
+	ret=SQLForeignKeysA(hStatement, NULL, 0, NULL, 0,(SQLCHAR*)tablename
+				,(SQLSMALLINT)strlen(tablename),NULL,0,NULL,0,NULL,0);
 			
 	if(SQL_SUCCEEDED(ret)) { return true; }
 

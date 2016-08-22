@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.10 copyright Comine.com 20130202S0022
+//v1.11 copyright Comine.com 20130813R1128
 #include "MStdLib.h"
 #include "MDynamicArray.h"
 

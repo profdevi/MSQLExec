@@ -30,13 +30,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.54 copyright Comine.com 20140617T0120
+//v2.10 copyright Comine.com 20160720W0608
 /*
 Bug Notice:
 	MStdSPrintf(const wchar_t *)  seems to be failing.
 */
+
 /////////////////////////////////////////////////
 #include "MStdLib.h"
+
 
 //*******************************************
 //* Display Standard Header Files and definitions
@@ -55,6 +57,7 @@ Bug Notice:
 	#if ( defined(MSTDLIB_OS_WINDOWS) )
 	#pragma comment(lib,"user32.lib")
 	#pragma comment(lib,"kernel32.lib")
+	#pragma comment(lib,"advapi32.lib")
 	#endif
 
 ///////////////////////////////////////////
@@ -66,41 +69,96 @@ Bug Notice:
 #include <stdarg.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <math.h>
 #include <wchar.h>
-
-///////////////////////////////////////////
-#else
-
-	#if defined(MSTDLIB_OS_MOSYNC)
-	#include <maapi.h>
-	#include <mastdlib.h>
-	#include <matime.h>
-	#include <maheap.h>
-	#include <madmath.h>
-	#include <conprint.h>
-	#include <mavsprintf.h>
-	#include <MAFS/File.h>
-
-	////////////////////////////
-	static MA_FILE *stdin=NULL;
-	static MA_FILE *stdout=NULL;
-	static MA_FILE *stderr=NULL;
-
-	#endif
+#include <pwd.h>
 #endif
-
-
 
 //***************************************************
 //** Module Elements
 //***************************************************
-static char GTempBuffer[30]="";
-static wchar_t GTempWideBuffer[30]=L"";
+static char GTempBuffer[100]="";
+static wchar_t GTempWideBuffer[100]=L"";
 
 //***************************************************
 //** Functions
 //***************************************************
+bool MStdPrintInfo(void)
+	{
+	//////////////////////////////////////////////////
+	#if defined(MSTDLIB_OS_WINDOWS)
+	MStdPrintf(" MSTDLIB_OS_WINDOWS defined\n");
+	#endif
+
+	//////////////////////////////////////////////////
+	#if defined(MSTDLIB_OS_WINDOWSRT)
+	MStdPrintf(" MSTDLIB_OS_WINDOWSRT defined\n");
+	#endif
+
+	//////////////////////////////////////////////////
+	#if defined(MSTDLIB_OS_WINDOWSOLD)
+	MStdPrintf(" MSTDLIB_OS_WINDOWSOLD defined\n");
+	#endif
+
+	//////////////////////////////////////////////////
+	#if defined(MSTDLIB_OS_MINGW)
+	MStdPrintf(" MSTDLIB_OS_MINGW defined\n");
+	#endif
+
+	//////////////////////////////////////////////////
+	#if defined(MSTDLIB_OS_LINUX)
+	MStdPrintf(" MSTDLIB_OS_LINUX defined\n");
+	#endif
+
+	//////////////////////////////////////////////////
+	#if defined(MSTDLIB_OS_IPHONE)
+	MStdPrintf(" MSTDLIB_OS_IPHONE defined\n");
+	#endif
+
+	//////////////////////////////////////////////////
+	#if defined(MSTDLIB_OS_MACOS)
+	MStdPrintf(" MSTDLIB_OS_MACOS defined\n");
+	#endif
+
+	//////////////////////////////////////////////////
+	#if defined(MSTDLIB_OS_OTHER)
+	MStdPrintf(" MSTDLIB_OS_OTHER defined\n");
+	#endif
+
+	MStdPrintf("\n");
+
+	// Allocate a buffer for getting information
+	char buffer[100];
+
+	// Print Machine Name:
+	MStdGetMachineName(buffer,sizeof(buffer)-2);
+	MStdPrintf(" Machine Name    :  %s\n",buffer);
+
+	// Print OS Root
+	MStdGetOSRoot(buffer,sizeof(buffer)-2);
+	MStdPrintf(" OS Root         :  %s\n",buffer);
+
+	// Print Path Seperator
+	MStdGetOSPathSeperator(buffer,sizeof(buffer)-2);
+	MStdPrintf(" Path Seperator  :  %s\n",buffer);
+
+	// Print User Name
+	MStdGetUserName(buffer,sizeof(buffer)-2);
+	MStdPrintf(" User Name       :  %s\n",buffer);
+
+	// Print User Home Directory
+	MStdGetUserHome(buffer,sizeof(buffer)-2);
+	MStdPrintf(" User Home       :  %s\n",buffer);
+
+	// Print out current time
+	time_t timeofday=MStdGetTime();
+	MStdCTime(buffer,sizeof(buffer)-2,&timeofday);
+	MStdPrintf(" Time of Day     :  %s\n",buffer);
+	
+	return true;
+	}
 
 
 /////////////////////////////////////////////////////
@@ -117,26 +175,31 @@ void MStdAssertInternal(bool flag,const char *exp,const char *filename,int linen
 ///////////////////////////////////////////////////////////
 void MStdError(const char *info,const char *filename,int lineno)
 	{
-	/////////////////////////////
-	#if !defined(MSTDLIB_OS_MOSYNC)
 	char line[1000];
 	MStdSPrintf(line,sizeof(line),"Error: %s %s(%d)",info,filename,lineno);
 	MStdPrintf("Error: %s %s(%d)\n",info,filename,lineno);
 	return;	
+	}
 
-	/////////////////////////////
+
+//////////////////////////////////////////////////////
+void MStdBreak(void)
+	{
+	// Check if Visual Stdio Debugger
+    #if defined(_MSC_VER)
+		__asm int 3
+	#elif defined(__GNUC__)
+		asm(".byte 0xcd,0x03\n\t");
 	#else
-	MStdPrintf("Error: %s %s(%d)\n",info,filename,lineno);
-	return;
-
-	#endif // MSTDLIB_OS_MOSYNC
+		raise(5);
+	#endif
 	}
 
 
 //////////////////////////////////////////////////////
 MStdFileHandle MStdFileOpen(const char *filename,const char *mode)
 	{
-	#if defined(MSTDLIB_OS_WINDOWS)
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSRT) )
 	FILE *filehandle=NULL;
 	if(fopen_s(&filehandle,filename,mode)!=0)
 		{
@@ -182,13 +245,6 @@ bool MStdSetStdInMode(bool binary)
 		{
 		return false;
 		}
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	stdin=fopen("/dev/tyy",mode);
-	if(stdin==NULL)
-		{
-		return false;
-		}
-
 	#endif // MSTDLIB_OS_WINDOWS
 
 	return true;
@@ -232,15 +288,6 @@ bool MStdSetStdOutMode(bool binary)
 
 	return true;
 
-	////////////////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	stdout=fopen("/dev/tty",mode);
-	if(stdout==NULL)
-		{
-		return false;
-		}
-
-	return true;
 	#else
 	return false;
 	#endif // MSTDLIB_OS_WINDOWS				
@@ -320,19 +367,12 @@ bool MStdFileGetString(MStdFileHandle handle,char *buffer,int buffersize)
 ///////////////////////////////////////////////////////
 bool MStdFileFlush(MStdFileHandle handle)
 	{
-	#if !defined(MSTDLIB_OS_MOSYNC)
 	if(fflush((FILE *)handle)!=0)
 		{
 		return false;
 		}
 
 	return true;
-
-	////////////////////////////////
-	#else
-	return true;
-
-	#endif // MSTDLIB_OS_MOSYNC	
 	}
 
 
@@ -386,33 +426,10 @@ int MStdErrPrintf(const char *format,...)
 	va_list args;
 	va_start(args,format);
 
-	///////////////////////////////
-	#if defined(MSTDLIB_OS_MOSYNC)
-	char buf[1000];
-	int length=vsprintf(buf,format,args);
-
-	if(length>=sizeof(buf)-1)
-		{
-		// Cut the length
-		length=sizeof(buf)-1;
-		buf[length]=0;
-		}
-
-	if(fwrite(buf,1,length,stderr)!=length)
-		{
-		return 0;
-		}
-
-	return length;
-
-	//////////////////////////////
-	#else
 	int length=vfprintf(stderr,format,args);
 	va_end(args);
 
 	return length;
-
-	#endif // MSTDLIB_OS_MOSYNC
 	}
 
 
@@ -494,28 +511,6 @@ bool MStdOpenConsoleIO(void)
 
 	return true;
 	
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	if(stdin!=NULL) { fclose(stdin);  stdin=NULL; }
-	if(stdout!=NULL) { fclose(stdout); stdout=NULL; }
-	if(stderr!=NULL) { fclose(stderr); stderr=NULL; }
-
-	if((stdin=fopen("/dev/tty","r"))==NULL)
-		{
-		return false;
-		}
-				
-	if((stdout=fopen("/dev/tty","w"))==NULL)
-		{
-		return false;
-		}
-
-	if((stderr=fopen("/dev/tty","w"))==NULL)
-		{
-		return false;
-		}
-
-	return true;
-
 	#else
 	return false;
 	#endif // MSTDLIB_OS_WINDOWS
@@ -525,7 +520,7 @@ bool MStdOpenConsoleIO(void)
 /////////////////////////////////////////////////////////
 bool MStdSetOutput(const char *filename)
 	{
-	#if defined(MSTDLIB_OS_WINDOWS)
+	#if ( defined(MSTDLIB_OS_WINDOWS) ||  defined(MSTDLIB_OS_WINDOWSRT) )
 	FILE *newfileout=NULL;
 	if(freopen_s(&newfileout,filename,"a",stdout)!=0)
 		{
@@ -544,16 +539,6 @@ bool MStdSetOutput(const char *filename)
 	
 	return true;
 
-	////////////////////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	if(stdout!=NULL) { fclose(stdout);  stdout=NULL; }
-
-	if((stdout=fopen(filename,"w"))==NULL)
-		{
-		return false;
-		}
-
-	return true;
 	#endif // MSTDLIB_OS_WINDOWS
 	}
 
@@ -578,17 +563,6 @@ bool MStdSetInput(const char *filename)
 		return false;
 		}
 	
-	return true;
-
-	////////////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	if(stdin!=NULL) { fclose(stdin);  stdin=NULL; }
-
-	if((stdin=fopen(filename,"r"))==NULL)
-		{
-		return false;
-		}
-
 	return true;
 
 	#else
@@ -622,17 +596,6 @@ bool MStdSetError(const char *filename)
 	
 	return true;
 
-	//////////////////////////////////////////////	
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	if(stderr!=NULL) { fclose(stderr);  stderr=NULL; }
-
-	if((stderr=fopen("/dev/tty","r"))==NULL)
-		{
-		return false;
-		}
-
-	return true;
-
 	//////////////////////////////////////////////
 	#else
 	return false;
@@ -645,7 +608,7 @@ int MStdSPrintf(char *target,int targetsize,const char *format,...)
 	{
 
 	////////////////////////////////
-	#if defined(MSTDLIB_OS_WINDOWS)
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSRT) )
 	va_list args;
 	va_start(args,format);
 
@@ -675,24 +638,6 @@ int MStdSPrintf(char *target,int targetsize,const char *format,...)
 
 	int length=vsnprintf(target,targetsize,format,args);
 	
-	va_end(args);
-
-	target[targetsize-1]=0;
-	return length;
-
-	////////////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	va_list args;
-	va_start(args,format);
-
-	int length=vsprintf(target,format,args);
-
-	if(length>targetsize)
-		{
-		target[targetsize-1]=0;
-		return length;
-		}
-
 	va_end(args);
 
 	target[targetsize-1]=0;
@@ -737,451 +682,8 @@ const char *MStdStr(float value)
 /////////////////////////////////////////////////////
 const char *MStdStr(double value)
 	{
-	MStdSPrintf(GTempBuffer,sizeof(GTempBuffer),"%lf",value);
+	MStdSPrintf(GTempBuffer,sizeof(GTempBuffer),"%g",value);
 	return GTempBuffer;
-	}
-
-
-//////////////////////////////////////////////////////
-bool MStdStrCpy(char *dst,const char *src)
-	{
-	char *q=dst;
-	const char *s=src;
-	while((*q++=*s++)!=0)
-		{
-		// Empty Body
-		}
-
-	return true;
-	}
-
-
-///////////////////////////////////////////////////////
-bool MStdStrCpy(char *dst,int dstsize,const char *src)
-	{
-	char *q=dst;
-	const char *s=src;
-	int length;
-	for(length=1;(*q++=*s++)!=0;length=length+1)
-		{
-		if(length>=dstsize)
-			{
-			dst[dstsize-1]=0;
-			return false;
-			}
-		}
-	
-	return true;
-	}
-
-
-//////////////////////////////////////////////////////
-int MStdStrLen(const char *src)
-	{
-	int length;
-	for(length=0;*src!=0;++src)
-		{  length=length+1;  }
-
-	return length;
-	}
-
-
-//////////////////////////////////////////////////////
-int MStdStrCmp(const char *str1,const char *str2)
-	{
-	const char *p=str1;
-	const char *q=str2;
-	for(;;)
-		{
-		if(*p!=*q)
-			{
-			// Return first difference
-			return *p - *q;
-			}
-
-		// check for exit
-		if(*p==0) { return 0; }
-
-		// Increase pointers
-		p=p+1;
-		q=q+1;
-		}
-	}
-
-
-//////////////////////////////////////////////////////
-int MStdStrICmp(const char *str1,const char *str2)
-	{
-	char ch1;
-	char ch2;
-	const char *p=str1;
-	const char *q=str2;
-	for(;;)
-		{
-		ch1=MStdToLower(*p);
-		ch2=MStdToLower(*q);
-		if(ch1!=ch2)
-			{
-			// Return first difference
-			return ch1 - ch2;
-			}
-
-		// check for exit
-		if(ch1==0) { return 0; }
-
-		// Increase pointers
-		p=p+1;
-		q=q+1;
-		}	
-	}
-
-
-//////////////////////////////////////////////////////////
-bool MStdStrCat(char *dst,int dstsize,const char *src)
-	{
-	// Find end of string
-	int endindex;
-	for(endindex=0;dst[endindex]!=0;endindex=endindex+1)
-		{
-		// Nothing to Do
-		}
-
-	//=End index is at the \0 of the first string
-
-	if(endindex+1>dstsize)
-		{
-		return false;
-		}
-
-	int i;
-	for(i=0; ;++i)
-		{
-		dst[endindex]=src[i];
-		if(src[i]==0) { return true; }
-
-		// Increase the endindex by 1
-		endindex = endindex + 1;
-
-		if(endindex>=dstsize)
-			{
-			dst[endindex]=0;
-			return false;
-			}
-		}
-	}
-
-
-//////////////////////////////////////////////
-bool MStdStrBegins(const char *str,const char *prefix)
-	{
-	if(str==NULL || prefix==NULL || *prefix==0)
-		{
-		// Bad Input strings
-		return false;
-		}
-
-	int i;
-	for(i=0;prefix[i]!=0;++i)
-		{
-		if(str[i]!=prefix[i])
-			{
-			return false;
-			}
-		}
-
-	//=We checked all the chars upto 0
-
-	return true;
-	}
-
-
-//////////////////////////////////////////////
-bool MStdStrIBegins(const char *str,const char *prefix)
-	{
-	if(str==NULL || prefix==NULL || *prefix==0)
-		{
-		// Bad Input strings
-		return false;
-		}
-
-	int i;
-	for(i=0;prefix[i]!=0;++i)
-		{
-		if(MStdToUpper(str[i])!=MStdToUpper(prefix[i]) )
-			{
-			return false;
-			}
-		}
-
-	//=We checked all the chars upto 0
-
-	return true;
-	}
-
-
-/////////////////////////////////////////////////////
-bool MStdStrEnds(const char *str,const char *suffix)
-	{
-	MStdAssert(str!=NULL);
-	MStdAssert(suffix!=NULL);
-
-	// Find the end of the string
-	int length1=MStdStrLen(str);
-	int length2=MStdStrLen(suffix);
-
-	if(length2>length1)
-		{  return false;  }
-
-	if(length2==length1)
-		{  return MStdStrBegins(str,suffix);  }
-	
-	//=Now we should check for comparison
-	
-	return MStdStrBegins(str+length1-length2,suffix);
-	}
-
-
-////////////////////////////////////////////////////
-bool MStdStrIEnds(const char *str,const char *suffix)
-	{
-	MStdAssert(str!=NULL);
-	MStdAssert(suffix!=NULL);
-
-	// Find the end of the string
-	int length1=MStdStrLen(str);
-	int length2=MStdStrLen(suffix);
-
-	if(length2>length1)
-		{  return false;  }
-
-	if(length2==length1)
-		{  return MStdStrIBegins(str,suffix);  }
-	
-	//=Now we should check for comparison
-	
-	return MStdStrIBegins(str+length1-length2,suffix);
-	}
-
-
-/////////////////////////////////////////////
-bool MStdIsSubStr(const char *str,const char *substring)
-	{
-	// Check if either are strings
-	if(str==NULL || substring==NULL || *substring==0)
-		{
-		return false;
-		}
-
-	int i;
-	for(i=0;str[i]!=0;++i)
-		{
-		if(MStdStrBegins(str+i,substring)==true)
-			{
-			//=We have found the substring
-			return true;
-			}
-		}
-
-	return false;
-	}
-
-
-/////////////////////////////////////////////
-bool MStdIsISubStr(const char *str,const char *substring)
-	{
-	// Check if either are strings
-	if(str==NULL || substring==NULL || *substring==0)
-		{
-		return false;
-		}
-
-	int i;
-	for(i=0;str[i]!=0;++i)
-		{
-		if(MStdStrIBegins(str+i,substring)==true)
-			{
-			//=We have found the substring
-			return true;
-			}
-		}
-
-	return false;
-	}
-
-
-/////////////////////////////////////////////
-bool MStdStrToLower(char *str)
-	{
-	if(str==NULL)
-		{  return false;  }
-
-	int i;
-	for(i=0;str[i]!=0;++i)
-		{  str[i]=MStdToLower(str[i]);  }
-
-	return true;
-	}
-
-
-/////////////////////////////////////////////
-bool MStdStrToUpper(char *str)
-	{
-	if(str==NULL)
-		{  return false;  }
-
-	int i;
-	for(i=0;str[i]!=0;++i)
-		{  str[i]=MStdToUpper(str[i]);  }
-
-	return true;
-	}
-
-
-//////////////////////////////////////////////////////
-bool MStdStrRemove(char *target,int pos,int length)
-	{
-	if(target==NULL)
-		{  return false; }
-
-	int strlength=MStdStrLen(target);
-	if(pos<0 || pos>strlength)
-		{
-		return false;
-		}
-
-	if(pos+length>strlength)
-		{  length=strlength-pos;  }
-
-	// Now we start copying overwriting original
-	int i;
-	for(i=0; ;++i)
-		{
-		target[pos+i]=target[pos+length+i];
-		if(target[pos+i]==0)
-			{  break;  }
-		}
-
-	return true;
-	}
-
-
-/////////////////////////////////////////////////////////
-bool MStdStrInsert(char *target,int maxtargetsize,int pos,const char *insert)
-	{
-	if(target==NULL || insert==NULL)
-		{  return false;  }
-
-	int targetlength=MStdStrLen(target);
-	int sourcelength=MStdStrLen(insert);
-	if(targetlength+sourcelength>=maxtargetsize)
-		{
-		return false;
-		}
-
-	if(pos<0 || pos>targetlength)
-		{
-		return false;
-		}
-	
-	// Copy backwards
-	int i;
-	for(i=targetlength;i>=pos;--i)
-		{
-		target[i+sourcelength]=target[i];
-		}
-
-	// Place String at position
-	for(i=0;i<sourcelength;++i)
-		{
-		target[pos+i]=insert[i];
-		}
-
-	return true;
-	}
-
-
-/////////////////////////////////////////////
-int MStdStrCharCount(const char *str,char ch)
-	{
-	if(str==NULL)
-		{  return 0; }
-
-	const char *p;
-	int count;
-
-	count=0;
-	for(p=str;*p!=0;++p)
-		{
-		if(*p==ch)
-			{ count=count+1;  }
-		}
-
-	return count;
-	}
-
-
-/////////////////////////////////////////////////////////
-bool MStdStrTrim(char *str)
-	{
-	char *src;
-	char *dst;
-	if(str==NULL)
-		{
-		return false;
-		}
-
-	for(src=dst=str;*src!=0;++src)
-		{
-		if(MStdIsSpace(*src)==true)
-			{ continue; }
-
-		*dst++=*src;
-		}
-
-	*dst=0;
-	return true;
-	}
-
-
-/////////////////////////////////////////////////////////
-bool MStdStrTrimRight(char *str)
-	{
-	char *src;
-	for(src=str;*src!=0;++src) { } // Find End
-
-	for(src=src-1; src>=str ;--src)
-		{
-		if(MStdIsSpace(*src)==false)
-			{ break; }
-
-		*src=0;
-		}
-
-	return true;	
-	}
-
-
-/////////////////////////////////////////////////////////
-bool MStdStrTrimLeft(char *str)
-	{
-	char *src;
-	char *dst;
-	for(src=str;*src!=0;++src)
-		{
-		if(MStdIsSpace(*src)==false)
-			{ break; }
-		}
-
-	// Copy String
-	for(dst=str; ;++dst)
-		{
-		if((*dst=*src)==0)
-			{ break; }
-
-		src=src+1;
-		}
-
-	return true;	
 	}
 
 
@@ -1190,7 +692,7 @@ int MStdSPrintf(wchar_t *target,int targetsize,const wchar_t *format,...)
 	{
 
 	///////////////////////////////////
-	#if defined(MSTDLIB_OS_WINDOWS)
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSRT) )
 	va_list args;
 	va_start(args,format);
 
@@ -1282,466 +784,42 @@ const wchar_t *MStdStrWide(double value)
 
 
 ////////////////////////////////////////////////////////////
-bool MStdStrCpy(wchar_t *dst,const wchar_t *src)
+bool MStdStrIsMember(char ch,const char *str)
 	{
-	wchar_t *q=dst;
-	const wchar_t *s=src;
-	while((*q++=*s++)!=0)
+	MStdAssert(str!=0);
+	for(const char *p=str;*p!=0;++p)
 		{
-		// Empty Body
+		if(*p==ch) { return true; }
 		}
 
-	return true;
+	return false;
 	}
 
 
 ///////////////////////////////////////////////////////////
-bool MStdStrCpy(wchar_t *dst,int dstsize,const wchar_t *src)
+bool MStdStrIsMember(wchar_t ch,const wchar_t *str)
 	{
-	wchar_t *q=dst;
-	const wchar_t *s=src;
-	int length;
-	for(length=1;(*q++=*s++)!=0;length=length+1)
+	MStdAssert(str!=0);
+	for(const wchar_t *p=str;*p!=0;++p)
 		{
-		if(length>=dstsize)
-			{
-			dst[dstsize-1]=0;
-			return false;
-			}
-		}
-	
-	return true;
-	}
-
-
-///////////////////////////////////////////////////////////////
-int MStdStrLen(const wchar_t *src)
-	{
-	int length;
-	for(length=0;*src!=0;++src)
-		{  length=length+1;  }
-
-	return length;
-	}
-
-
-/////////////////////////////////////////////////////////////////
-int MStdStrCmp(const wchar_t *str1,const wchar_t *str2)
-	{
-	const wchar_t *p=str1;
-	const wchar_t *q=str2;
-	for(;;)
-		{
-		if(*p!=*q)
-			{
-			// Return first difference
-			return *p - *q;
-			}
-
-		// check for exit
-		if(*p==0) { return 0; }
-
-		// Increase pointers
-		p=p+1;
-		q=q+1;
-		}
-	}
-
-
-/////////////////////////////////////////////////////////////////
-int MStdStrICmp(const wchar_t *str1,const wchar_t *str2)
-	{
-	wchar_t ch1;
-	wchar_t ch2;
-	const wchar_t *p=str1;
-	const wchar_t *q=str2;
-	for(;;)
-		{
-		ch1=MStdToLower(*p);
-		ch2=MStdToLower(*q);
-		if(ch1!=ch2)
-			{
-			// Return first difference
-			return ch1 - ch2;
-			}
-
-		// check for exit
-		if(ch1==0) { return 0; }
-
-		// Increase pointers
-		p=p+1;
-		q=q+1;
-		}	
-	}
-
-
-///////////////////////////////////////////////////////
-bool MStdStrCat(wchar_t *dst,int dstsize,const wchar_t *src)
-	{
-	// Find end of string
-	int endindex;
-	for(endindex=0;dst[endindex]!=0;endindex=endindex+1)
-		{
-		// Nothing to Do
-		}
-
-	//=End index is at the \0 of the first string
-
-	if(endindex+1>=dstsize)
-		{
-		return false;
-		}
-
-	int i;
-	for(i=0; ;++i)
-		{
-		dst[endindex]=src[i];
-		if(src[i]==0) { return true; }
-
-		// Increase the endindex by 1
-		endindex = endindex + 1;
-
-		if(endindex>=dstsize)
-			{
-			dst[endindex]=0;
-			return false;
-			}
-		}	
-	}
-
-
-///////////////////////////////////////////////////////
-bool MStdStrBegins(const wchar_t *str,const wchar_t *prefix)
-	{
-	if(str==NULL || prefix==NULL || *prefix==0)
-		{
-		// Bad Input strings
-		return false;
-		}
-
-	int i;
-	for(i=0;prefix[i]!=0;++i)
-		{
-		if(str[i]!=prefix[i])
-			{
-			return false;
-			}
-		}
-
-	//=We checked all the chars upto 0
-
-	return true;
-	}
-
-
-//////////////////////////////////////////////////////
-bool MStdStrIBegins(const wchar_t *str,const wchar_t *prefix)
-	{
-	if(str==NULL || prefix==NULL || *prefix==0)
-		{
-		// Bad Input strings
-		return false;
-		}
-
-	int i;
-	for(i=0;prefix[i]!=0;++i)
-		{
-		if(MStdToUpper(str[i])!=MStdToUpper(prefix[i]) )
-			{
-			return false;
-			}
-		}
-
-	//=We checked all the chars upto 0
-
-	return true;	
-	}
-
-
-/////////////////////////////////////////////////////
-bool MStdStrEnds(const wchar_t *str,const wchar_t *suffix)
-	{
-	MStdAssert(str!=NULL);
-	MStdAssert(suffix!=NULL);
-
-	// Find the end of the string
-	int length1=MStdStrLen(str);
-	int length2=MStdStrLen(suffix);
-
-	if(length2>length1)
-		{  return false;  }
-
-	if(length2==length1)
-		{  return MStdStrBegins(str,suffix);  }
-	
-	//=Now we should check for comparison
-	
-	return MStdStrBegins(str+length1-length2,suffix);
-	}
-
-
-////////////////////////////////////////////////////
-bool MStdStrIEnds(const wchar_t *str,const wchar_t *suffix)
-	{
-	MStdAssert(str!=NULL);
-	MStdAssert(suffix!=NULL);
-
-	// Find the end of the string
-	int length1=MStdStrLen(str);
-	int length2=MStdStrLen(suffix);
-
-	if(length2>length1)
-		{  return false;  }
-
-	if(length2==length1)
-		{  return MStdStrIBegins(str,suffix);  }
-	
-	//=Now we should check for comparison
-	
-	return MStdStrIBegins(str+length1-length2,suffix);
-	}
-
-
-////////////////////////////////////////////////
-bool MStdIsSubStr(const wchar_t *str,const wchar_t *substring)
-	{
-	// Check if either are strings
-	if(str==NULL || substring==NULL || *substring==0)
-		{
-		return false;
-		}
-
-	int i;
-	for(i=0;str[i]!=0;++i)
-		{
-		if(MStdStrBegins(str+i,substring)==true)
-			{
-			//=We have found the substring
-			return true;
-			}
+		if(*p==ch) { return true; }
 		}
 
 	return false;
 	}
 
 
-////////////////////////////////////////////////////
-bool MStdIsISubStr(const wchar_t *str,const wchar_t *substring)
+////////////////////////////////////////////////////////////
+bool MStdStrRemoveChars(char *modifystr,const char *removechars)
 	{
-	// Check if either are strings
-	if(str==NULL || substring==NULL || *substring==0)
+	char *src,*dst;
+	for(dst=src=modifystr; ;++src)
 		{
-		return false;
-		}
-
-	int i;
-	for(i=0;str[i]!=0;++i)
-		{
-		if(MStdStrIBegins(str+i,substring)==true)
+		*dst=*src;
+		if(*dst==0) { break; }
+		if(MStdStrIsMember(*dst,removechars)==false)
 			{
-			//=We have found the substring
-			return true;
-			}
-		}
-
-	return false;
-	}
-
-
-//////////////////////////////////////////////////////
-bool MStdStrToLower(wchar_t *str)
-	{
-	if(str==NULL)
-		{  return false;  }
-
-	int i;
-	for(i=0;str[i]!=0;++i)
-		{  str[i]=MStdToLower(str[i]);  }
-
-	return true;
-	}
-
-
-//////////////////////////////////////////////////////
-bool MStdStrToUpper(wchar_t *str)
-	{
-	if(str==NULL)
-		{  return false;  }
-
-	int i;
-	for(i=0;str[i]!=0;++i)
-		{  str[i]=MStdToUpper(str[i]);  }
-
-	return true;
-	}
-
-
-//////////////////////////////////////////////////////
-bool MStdStrRemove(wchar_t *target,int pos,int length)
-	{
-	if(target==NULL)
-		{  return false; }
-
-	int strlength=MStdStrLen(target);
-	if(pos<0 || pos>strlength)
-		{
-		return false;
-		}
-
-	if(pos+length>strlength)
-		{  length=strlength-pos;  }
-
-	// Now we start copying overwriting original
-	int i;
-	for(i=0; ;++i)
-		{
-		target[pos+i]=target[pos+length+i];
-		if(target[pos+i]==0)
-			{  break;  }
-		}
-
-	return true;
-	}
-
-
-/////////////////////////////////////////////////////////
-bool MStdStrInsert(wchar_t *target,int maxtargetsize,int pos,const wchar_t *insert)
-	{
-	if(target==NULL || insert==NULL)
-		{  return false;  }
-
-	int targetlength=MStdStrLen(target);
-	int sourcelength=MStdStrLen(insert);
-	if(targetlength+sourcelength>=maxtargetsize)
-		{
-		return false;
-		}
-
-	if(pos<0 || pos>targetlength)
-		{
-		return false;
-		}
-	
-	// Copy backwards
-	int i;
-	for(i=targetlength;i>=pos;--i)
-		{
-		target[i+sourcelength]=target[i];
-		}
-
-	// Place String at position
-	for(i=0;i<sourcelength;++i)
-		{
-		target[pos+i]=insert[i];
-		}
-
-	return true;
-	}
-
-
-/////////////////////////////////////////////
-int MStdStrCharCount(const wchar_t *str,wchar_t ch)
-	{
-	if(str==NULL)
-		{  return 0; }
-
-	const wchar_t *p;
-	int count;
-
-	count=0;
-	for(p=str;*p!=0;++p)
-		{
-		if(*p==ch)
-			{ count=count+1;  }
-		}
-
-	return count;
-	}
-
-
-/////////////////////////////////////////////////////////
-bool MStdStrTrim(wchar_t *str)
-	{
-	wchar_t *src;
-	wchar_t *dst;
-	if(str==NULL)
-		{
-		return false;
-		}
-
-	for(src=dst=str;*src!=0;++src)
-		{
-		if(MStdIsSpace(*src)==true)
-			{ continue; }
-
-		*dst++=*src;
-		}
-
-	*dst=0;
-	return true;
-	}
-
-
-/////////////////////////////////////////////////////////
-bool MStdStrTrimRight(wchar_t *str)
-	{
-	wchar_t *src;
-	for(src=str;*src!=0;++src) { } // Find End
-
-	for(src=src-1; src>=str ;--src)
-		{
-		if(MStdIsSpace(*src)==false)
-			{ break; }
-
-		*src=0;
-		}
-
-	return true;	
-	}
-
-
-/////////////////////////////////////////////////////////
-bool MStdStrTrimLeft(wchar_t *str)
-	{
-	wchar_t *src;
-	wchar_t *dst;
-	for(src=str;*src!=0;++src)
-		{
-		if(MStdIsSpace(*src)==false)
-			{ break; }
-		}
-
-	// Copy String
-	for(dst=str; ;++dst)
-		{
-		if((*dst=*src)==0)
-			{ break; }
-
-		src=src+1;
-		}
-
-	return true;	
-	}
-
-
-/////////////////////////////////////////////////////////
-bool MStdStrClean(char *buffer)
-	{
-	char *src;
-	char *dst;
-	for(src=dst=buffer; ;++src )
-		{
-		if(*src==0)
-			{
-			*dst = 0;
-			return true;
-			}
-
-		if(MStdIsPrintable(*src)==true)
-			{
-			*dst=*src;
-			dst = dst + 1;
-			continue;
+			dst=dst+1;
 			}
 		}
 
@@ -1749,24 +827,17 @@ bool MStdStrClean(char *buffer)
 	}
 
 
-/////////////////////////////////////////////////////////
-bool MStdStrClean(wchar_t *buffer)
+////////////////////////////////////////////////////////////
+bool MStdStrRemoveChars(wchar_t *modifystr,const wchar_t *removechars)
 	{
-	wchar_t *src;
-	wchar_t *dst;
-	for(src=dst=buffer; ;++src )
+	wchar_t *src,*dst;
+	for(dst=src=modifystr; ;++src)
 		{
-		if(*src==0)
+		*dst=*src;
+		if(*dst==0) { break; }
+		if(MStdStrIsMember(*dst,removechars)==false)
 			{
-			*dst = 0;
-			return true;
-			}
-
-		if(MStdIsPrintable(char(*src) )==true)
-			{
-			*dst=*src;
-			dst = dst + 1;
-			continue;
+			dst=dst+1;
 			}
 		}
 
@@ -1778,7 +849,23 @@ bool MStdStrClean(wchar_t *buffer)
 bool MStdWindowOutput(const char *title,const char *info)
 	{
 	///////////////////////////////////////
-	#if (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) )
+	#if defined(MSTDLIB_OS_WINDOWSRT)
+
+	MStdArray<wchar_t> wtitle;
+	MStdStrCpy(wtitle,title);
+	Platform::String^ ptitle=ref new Platform::String(wtitle.Get() );
+	
+	MStdArray<wchar_t> winfo;
+	MStdStrCpy(winfo,info);
+	Platform::String^ pinfo=ref new Platform::String(winfo.Get() );
+
+	Windows::UI::Popups::MessageDialog^ dlg=ref new Windows::UI::Popups::MessageDialog(pinfo,ptitle);
+	dlg->ShowAsync();
+	dlg=nullptr;
+
+	return true;
+	
+	#elif (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) )
 	MessageBoxA(NULL,info,title,MB_OK);
 
 	///////////////////////////////////////
@@ -1798,8 +885,11 @@ bool MStdWindowOutput(const char *title,const char *info)
 bool MStdSleep(int ms)
 	{
 	if(ms<=0) {  return false;  }
+	#if defined(MSTDLIB_OS_WINDOWSRT)
 
-	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined (MSTDLIB_OS_MINGW) )
+	return false;
+
+	#elif ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined (MSTDLIB_OS_MINGW) )
 	Sleep(ms);
 	return true;
 
@@ -1815,23 +905,6 @@ bool MStdSleep(int ms)
 	usleep(ms*1000);
 	return true;
 
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	for(;;)
-		{
-		MAEvent event;
-		if(maGetEvent(&event)<=0) { break; }
-
-		if(event.type==EVENT_TYPE_CLOSE)
-			{
-			maExit(0);
-			return true;
-			}
-		}
-
-	maWait(ms);
-	
-	return true;
-
 	#else
 	return false;
 	#endif // MSTDLIB_OS_WINDOWS
@@ -1842,7 +915,7 @@ bool MStdSleep(int ms)
 bool MStdExit(int value)
 	{
 	/////////////////////////
-	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) || defined(MSTDLIB_OS_WINDOWSRT) )
 	exit(value);
 	return true;
 
@@ -1852,146 +925,10 @@ bool MStdExit(int value)
 	return true;
 
 	////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	maExit(value);
-	return true;
-
-	////////////////////////
 	#else
 	return false;
 
 	#endif // MSTDLIB_OS_WINDOWS
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsPrintable(char ch)
-	{
-	if(ch>=32 && ch<=126) { return true; }
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsSpace(char ch)
-	{
-	if(ch==' ' || ch=='\r' || ch=='\n' || ch=='\t')
-		{
-		return true;
-		}
-
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsDigit(char ch)
-	{
-	if(ch>='0' && ch<='9')
-		{
-		return true;
-		}
-
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsAlpha(char ch)
-	{
-	if(ch>='a' && ch<='z')
-		{
-		return true;
-		}
-
-	if(ch>='A' && ch<='Z')
-		{
-		return true;
-		}
-
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsAlphaNumeric(char ch)
-	{
-	if(ch>='a' && ch<='z')
-		{
-		return true;
-		}
-
-	if(ch>='A' && ch<='Z')
-		{
-		return true;
-		}
-
-	if(ch>='0' && ch<='9')
-		{
-		return true;
-		}
-
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsUpper(char ch)
-	{
-	if(ch>='A' && ch<='Z')
-		{
-		return true;
-		}
-
-	return false;	
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsLower(char ch)
-	{
-	if(ch>='a' && ch<='z')
-		{
-		return true;
-		}
-
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsBinary(char ch)
-	{
-	if(ch=='0' || ch =='1')
-		{ return true; }
-
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsOctal(char ch)
-	{
-	if(ch>='0' && ch <='7')
-		{ return true; }
-
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsHex(char ch)
-	{
-	if(ch>='0' && ch <='9')
-		{ return true; }
-
-	if(ch>='a' && ch<='f')
-		{ return true;  }
-
-	if(ch>='A' && ch<='F')
-		{ return true;  }
-
-	return false;	
 	}
 
 
@@ -2027,69 +964,18 @@ char MStdToHex(int value)
 	}
 
 
-////////////////////////////////////////////////////////
-int MStdFromBinary(char ch)
-	{
-	MStdAssert(ch=='0' || ch=='1');
-	if(ch=='0')
-		{  return 0; }
-
-	if(ch=='1')
-		{  return 1;  }
-
-	return 0;
-	}
-
-
-////////////////////////////////////////////////////////
-int MStdFromOctal(char ch)
-	{
-	MStdAssert(ch>='0' || ch<='7');
-	return ch-'0';
-	}
-
-
-////////////////////////////////////////////////////////
-int MStdFromHex(char ch)
-	{
-	if(ch>='0' && ch<='9')
-		{  return ch-'0';  }
-
-	if(ch>='a' && ch<='f')
-		{  return 10+ch-'a';  }
-
-	if(ch>='A' && ch<='F')
-		{  return 10+ch-'A';  }
-
-	return 0;
-	}
-
-
-////////////////////////////////////////////////////////
-char MStdToLower(char ch)
-	{
-	if(ch>='A' && ch<='Z')
-		{ ch = ch - 'A' + 'a'; }
-
-	return ch;
-	}
-
-
-///////////////////////////////////////////////////////
-char MStdToUpper(char ch)
-	{
-	if(ch>='a' && ch<='z')
-		{ ch = ch - 'a' + 'A'; }
-
-	return ch;
-	}
-
-
 ///////////////////////////////////////////////////////
 bool MStdIsNan(double val)
 	{
 	////////////////////
-	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	#if defined(MSTDLIB_OS_WINDOWSRT)
+
+	if(isnan(val)==0)
+		{  return false; }
+	else
+		{  return true;  }	
+	
+	#elif ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
 	if(_isnan(val)==0)
 		{  return false; }
 	else
@@ -2097,13 +983,6 @@ bool MStdIsNan(double val)
 
 	///////////////////
 	#elif (defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
-	if(isnan(val)==0)
-		{  return false;  }
-	else
-		{  return true;  }
-
-	////////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
 	if(isnan(val)==0)
 		{  return false;  }
 	else
@@ -2118,117 +997,103 @@ bool MStdIsNan(double val)
 //////////////////////////////////////////////////////
 bool MStdIsFinite(double val)
 	{
+	/////////////////////////////////////
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSRT) )
+
+		#if (_MSC_VER>=1800)
+			if(isfinite(val)) { return true; }
+			return false;
+		#else
+		if(_finite(val)!=0) { return true; }
+		return false;
+
+		#endif	
+	
+	/////////////////////////////////////
+	#else
 	if(isfinite(val)) { return true; }
 	return false;
+	#endif
 	}
 
 
 ///////////////////////////////////////////////////////
-bool MStdIsSpace(wchar_t ch)
+bool MStdGetEnvVar(const char *var,char *buf,int buflen)
 	{
-	if(ch==' ' || ch=='\r' || ch=='\n' || ch=='\t')
+	MStdAssert(buf!=0 && buflen>0);
+
+	///////////////////////////////
+	#if defined(MSTDLIB_OS_WINDOWS)
+	if(GetEnvironmentVariableA(var,buf,(DWORD)buflen)==0)
 		{
-		return true;
+		*buf=0;
+		return false;
 		}
 
+	return true;
+
+	///////////////////////////////
+	#elif (defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_MINGW) || defined(MSTDLIB_OS_MACOS) )
+	const char *envvalue=getenv(var);
+	if(envvalue==0)
+		{
+		*buf=0;
+		return false;
+		}
+
+	const int envvaluelen=MStdStrLen(envvalue);
+	if(envvaluelen+1>buflen)
+		{
+		*buf=0;
+		return false;
+		}
+
+	MStdStrCpy(buf,envvalue);
+
+	return true;
+
+	///////////////////////////////
+	#else
 	return false;
-	}
-
-
-//////////////////////////////////////////////////////
-bool MStdIsDigit(wchar_t ch)
-	{
-	if(ch>='0' && ch<='9')
-		{
-		return true;
-		}
-
-	return false;
-	}
-
-
-/////////////////////////////////////////////////////
-bool MStdIsAlpha(wchar_t ch)
-	{
-	if(ch>='a' && ch<='z')
-		{
-		return true;
-		}
-
-	if(ch>='A' && ch<='Z')
-		{
-		return true;
-		}
-
-	return false;
+	#endif
 	}
 
 
 ///////////////////////////////////////////////////////
-bool MStdIsAlphaNumeric(wchar_t ch)
+bool MStdGetUserHome(char *buf,int buflen)
 	{
-	if(ch>='a' && ch<='z')
+	MStdAssert(buf!=0 && buflen>0);
+	///////////////////////////////
+	#if (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_MINGW) )
+	if(MStdGetEnvVar("USERPROFILE",buf,buflen)==false)
 		{
-		return true;
+		*buf=0;
+		return false;
 		}
 
-	if(ch>='A' && ch<='Z')
+	// Convert forward slashes to backword slashes
+	for(int i=0;buf[i]!=0;++i)
 		{
-		return true;
+		if(buf[i]=='\\') {  buf[i]='/'; }
+		}
+	return true;
+
+	///////////////////////////////
+	#elif (defined(MSTDLIB_OS_LINUX) ||  defined(MSTDLIB_OS_MACOS) )
+	if(MStdGetEnvVar("HOME",buf,buflen)==false)
+		{
+		*buf=0;
+		return false;
 		}
 
-	if(ch>='0' && ch<='9')
-		{
-		return true;
-		}
+	return true;
+	
 
+	///////////////////////////////
+	#else
 	return false;
+	#endif
 	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsUpper(wchar_t ch)
-	{
-	if(ch>='A' && ch<='Z')
-		{
-		return true;
-		}
-
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-bool MStdIsLower(wchar_t ch)
-	{
-	if(ch>='a' && ch<='z')
-		{
-		return true;
-		}
-
-	return false;
-	}
-
-
-////////////////////////////////////////////////////////
-wchar_t MStdToLower(wchar_t ch)
-	{
-	if(ch>='A' && ch<='Z')
-		{ ch = ch - 'A' + 'a'; }
-
-	return ch;
-	}
-
-
-////////////////////////////////////////////////////////
-wchar_t MStdToUpper(wchar_t ch)
-	{
-	if(ch>='a' && ch<='z')
-		{ ch = ch - 'a' + 'A'; }
-
-	return ch;
-	}
-
 
 ///////////////////////////////////////////////////////
 bool MStdMemCpy(void *target,const void *src,int count)
@@ -2348,7 +1213,10 @@ void *MStdReAlloc(void *memblock,int newsize)
 bool MStdKbHit(void)
 	{
 	////////////////////////////////
-	#if (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	#if defined(MSTDLIB_OS_WINDOWSRT)
+		return false;
+
+	#elif (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
 	if(_kbhit())
 		{ return true; }
 
@@ -2360,26 +1228,6 @@ bool MStdKbHit(void)
 	return true;
 
 	//////////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	for(;;)
-		{
-		MAEvent event;
-		if(maGetEvent(&event)<=0) { break; }
-
-		if(event.type==EVENT_TYPE_CLOSE)
-			{
-			maExit(0);
-			return true;
-			}
-
-		if(event.type==EVENT_TYPE_CHAR)
-			{
-			break; 
-			}
-		}
-
-	return true;
-
 	#else
 	return false;
 	#endif // MSTDLIB_OS_WINDOWS
@@ -2390,7 +1238,14 @@ bool MStdKbHit(void)
 int MStdGetCh(bool forcestdio)
 	{
 	////////////////////////////
-	#if (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) )
+	#if defined(MSTDLIB_OS_WINDOWSRT)
+
+	if(forcestdio==true)
+		{  return getchar(); }
+
+	return _getchar_nolock();
+	
+	#elif (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) )
 	if(forcestdio==true)
 		{  return getchar(); }
 
@@ -2414,32 +1269,6 @@ int MStdGetCh(bool forcestdio)
 
 	return ch;
 
-	///////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	for(;;)
-		{
-		maWait(0);
-		MAEvent event;
-		if(maGetEvent(&event)<=0) { continue; }
-
-		if(event.type==EVENT_TYPE_CLOSE)
-			{
-			maExit(0);
-			return true;
-			}
-
-		if(event.type==EVENT_TYPE_KEY_PRESSED)
-			{
-			if(forcestdio==true)
-				{
-				printf("%c",event.key);
-				}
-
-			return event.key;
-			}
-		}
-
-	
 	#endif // MSDLIB_OS_WINDOWS
 	}
 
@@ -2447,17 +1276,9 @@ int MStdGetCh(bool forcestdio)
 ////////////////////////////////////////////////
 time_t MStdGetTime(void)
 	{
-	////////////////////////////////////////////
-	#if defined(MSTDLIB_OS_MOSYNC)
-	return (time_t)maTime();
-
-	////////////////////////////////////////////
-	#else
 	time_t timecount;
 	time(&timecount);
 	return timecount;
-
-	#endif // MSTDLIB_OS_MOSYNC
 	}
 
 
@@ -2468,7 +1289,7 @@ bool MStdCTime(char *buf,int bufsize,time_t *tmdata)
 	buf[0]=0;
 
 	///////////////////////////////////////
-	#if defined(MSTDLIB_OS_WINDOWS)
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSRT) )
 	if(ctime_s(buf,bufsize,tmdata))
 		{
 		return false;
@@ -2493,17 +1314,6 @@ bool MStdCTime(char *buf,int bufsize,time_t *tmdata)
 	MStdStrCpy(buf,bufsize,str);
 	return true;
 
-	//////////////////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	// Convert time_t to 
-	struct tm splitdata;
-	split_time(*tmdata,&splitdata);
-	
-	// Buffer required by matime.h
-	char tmpbuf[26];
-	sprint_tm(&splitdata,tmpbuf);
-
-	MStdStrCpy(buf,bufsize,tmpbuf);
 	#endif // MSTDLIB_OS_WINDOWS
 	}
 
@@ -2511,27 +1321,18 @@ bool MStdCTime(char *buf,int bufsize,time_t *tmdata)
 /////////////////////////////////////////////////
 bool MStdAtExit(void fun(void))
 	{
-	////////////////////////
-	#if !defined(MSTDLIB_OS_MOSYNC)
 	if(atexit(fun))
 		{
 		return false;
 		}
 
 	return true;
-
-	////////////////////////
-	#else
-	return false;
-	#endif // MSTDLIB_OS_MOSYNC
 	}
 
 
 /////////////////////////////////////////////////
 bool MStdFileRemove(const char *filename)
 	{
-	/////////////////////////////
-	#if !defined(MSTDLIB_OS_MOSYNC)
 	if(remove(filename)!=0)
 		{
 		// Do not generate an error
@@ -2539,33 +1340,6 @@ bool MStdFileRemove(const char *filename)
 		}
 
 	return true;
-
-	/////////////////////////////
-	#else
-	MAHandle file;
-	file=maFileOpen(filename,MA_ACCESS_READ_WRITE);
-	if(file<0)
-		{
-		return false;
-		}
-
-	if(maFileExists(file)==0)
-		{
-		//=File Does not exist
-		maFileClose(file);
-		return true;
-		}
-
-	if(maFileDelete(file)<0)
-		{
-		maFileClose(file);
-		return false;
-		}
-
-	maFileClose(file);
-
-	return true;	
-	#endif // MSTDLIB_OS_MOSYNC
 	}
 
 
@@ -2573,33 +1347,12 @@ bool MStdFileRemove(const char *filename)
 bool MStdFileRename(const char *filesrc,const char *filetarget)
 	{
 	/////////////////////////////
-	#if !defined(MSTDLIB_OS_MOSYNC)
 	if(rename(filesrc,filetarget)!=0)
 		{
 		return false;
 		}
 
 	return true;
-
-	/////////////////////////////
-	#else
-	MAHandle file;
-	file=maFileOpen(filesrc,MA_ACCESS_READ_WRITE);
-	if(file<0)
-		{
-		return false;
-		}
-	
-	if(maFileRename(file,filetarget)<0)
-		{
-		maFileClose(file);
-		return false;
-		}
-
-	maFileClose(file);
-	return true;
-	#endif
-
 	}
 
 
@@ -2627,22 +1380,24 @@ bool MStdFileExists(const char *filename)
 	return false;	
 	}
 
+
 //////////////////////////////////////////////////
 bool MStdExec(const char *cmd)
 	{
-	////////////////////////////////////
-	#if !defined(MSTDLIB_OS_MOSYNC)
-	int ret=system(cmd);
-	if(ret==0)
-		{  return true; }
+	#if defined(MSTDLIB_OS_WINDOWSRT)
+		
+		// Do Nothing for WINRT
+		return false;
 
-	return false;
-	
-	////////////////////////////////////
-	#else 
-	return false;
+	#else
 
-	#endif // MSTDLIB_OS_MOSYNC
+		int ret=system(cmd);
+		if(ret==0)
+			{  return true; }
+
+		return false;
+
+	#endif 
 	}
 
 
@@ -2867,7 +1622,7 @@ void *MStdIToP(int val)
 
 	////////////////////////////////////
 	#else
-	return (void *)(long)val;
+	return (void *)(size_t)val;
 
 	#endif	
 	}
@@ -2882,101 +1637,284 @@ int MStdPToI(void *val)
 
 	//////////////////////////
 	#else	
-	return (int)(long)val;
+	return (int)(long)(size_t)(val);
 	#endif	// MSTDLIB_OS_WINDOWS
 	}
 
 
-///////////////////////////////////////////////////
-int MStdGetMax(int value1,int value2)
-	{
-	if(value1>value2)
-		{  return value1; }
 
-	return value2;
+///////////////////////////////////////////////////
+int MStdGetMin(const int *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	int datamin=data[0];
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]<datamin) { datamin=data[i]; }
+		}
+
+	return datamin;
 	}
 
 
 ///////////////////////////////////////////////////
-float MStdGetMax(float value1,float value2)
+float MStdGetMin(const float *data,int datacount)
 	{
-	if(value1>value2)
-		{  return value1; }
+	MStdAssert(data!=NULL && datacount>0);
 
-	return value2;
+	float datamin=data[0];
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]<datamin) { datamin=data[i]; }
+		}
+
+	return datamin;
+	}
+
+
+//////////////////////////////////////////////////
+double MStdGetMin(const double *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	double datamin=data[0];
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]<datamin) { datamin=data[i]; }
+		}
+
+	return datamin;
+	}
+
+
+//////////////////////////////////////////////////
+int MStdGetMax(const int *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	int datamax=data[0];
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]>datamax) { datamax=data[i]; }
+		}
+
+	return datamax;
+	}
+
+
+/////////////////////////////////////////////////
+float MStdGetMax(const float *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	float datamax=data[0];
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]>datamax) { datamax=data[i]; }
+		}
+
+	return datamax;
+	}
+
+
+/////////////////////////////////////////////////
+double MStdGetMax(const double *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	double datamax=data[0];
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]>datamax) { datamax=data[i]; }
+		}
+
+	return datamax;
 	}
 
 
 ///////////////////////////////////////////////////
-double MStdGetMax(double value1,double value2)
+int MStdGetMinIndex(const int *data,int datacount)
 	{
-	if(value1>value2)
-		{  return value1; }
+	MStdAssert(data!=NULL && datacount>0);
 
-	return value2;
+	int index=0;
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]<data[index]) { index=i; }
+		}
+
+	return index;
 	}
 
 
 ///////////////////////////////////////////////////
-int MStdGetMin(int value1,int value2)
+int MStdGetMinIndex(const float *data,int datacount)
 	{
-	if(value1<value2)
-		{  return value1; }
+	MStdAssert(data!=NULL && datacount>0);
 
-	return value2;
+	int index=0;
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]<data[index]) { index=i; }
+		}
+
+	return index;
+	}
+
+
+//////////////////////////////////////////////////
+int MStdGetMinIndex(const double *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	int index=0;
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]<data[index]) { index=i; }
+		}
+
+	return index;
+	}
+
+
+/////////////////////////////////////////////////
+int MStdGetMaxIndex(const int *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	int index=0;
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]>data[index]) { index=i; }
+		}
+
+	return index;
 	}
 
 
 ///////////////////////////////////////////////////
-float MStdGetMin(float value1,float value2)
+int MStdGetMaxIndex(const float *data,int datacount)
 	{
-	if(value1<value2)
-		{  return value1; }
+	MStdAssert(data!=NULL && datacount>0);
 
-	return value2;
+	int index=0;
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]>data[index]) { index=i; }
+		}
+
+	return index;
+	}
+
+
+////////////////////////////////////////////////////
+int MStdGetMaxIndex(const double *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	int index=0;
+
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]>data[index]) { index=i; }
+		}
+
+	return index;
+	}
+
+
+/////////////////////////////////////////////////////
+int MStdGetSum(const int *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	int sum=0;
+	for(int i=0;i<datacount;++i)
+		{
+		sum = sum + data[i];
+		}
+	
+	return sum;
+	}
+
+
+////////////////////////////////////////////////////
+float MStdGetSum(const float *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	float sum=0;
+	for(int i=0;i<datacount;++i)
+		{
+		sum = sum + data[i];
+		}
+	
+	return sum;
+	}
+
+
+////////////////////////////////////////////////////
+double MStdGetSum(const double *data,int datacount)
+	{
+	MStdAssert(data!=NULL && datacount>0);
+
+	double sum=0;
+	for(int i=0;i<datacount;++i)
+		{
+		sum = sum + data[i];
+		}
+	
+	return sum;
 	}
 
 
 ///////////////////////////////////////////////////
-double MStdGetMin(double value1,double value2)
+int MStdGetMidIndex(const double *data,int datacount)
 	{
-	if(value1<value2)
-		{  return value1; }
+	MStdAssert(data!=NULL && datacount>0);
+	
+	const double datasum=MStdGetSum(data,datacount);
+	const double midsum=datasum/2.0;
 
-	return value2;
+	if(datasum>0.0)
+		{
+		double total=0.0;
+		int i;
+		for(i=0;i<datacount;++i)
+			{
+			total = total + data[i];
+			if(total>midsum) { return i; }
+			}
+		}
+	
+	return 0;
 	}
 
 
-
-///////////////////////////////////////////////////
-int MStdGetAbs(int value)
-	{
-	if(value>=0)
-		{  return value; }
-
-	return -value;
-	}
-
-
-
-///////////////////////////////////////////////////
-float MStdGetAbs(float value)
-	{
-	if(value>=0)
-		{  return value; }
-
-	return -value;
-	}
-
-
-///////////////////////////////////////////////////
-double MStdGetAbs(double value)
-	{
-	if(value>=0)
-		{  return value; }
-
-	return -value;
-	}
 
 
 ////////////////////////////////////////////////////
@@ -2985,7 +1923,12 @@ void MStdSRand(void)
 	time_t tmdata;
 
 	/////////////////////////////////////////
-	#if  (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	#if defined(MSTDLIB_OS_WINDOWSRT)
+
+		time(&tmdata);
+		return;
+
+	#elif  (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW))
 	time(&tmdata);
 	tmdata = (time_t) (tmdata ^ GetCurrentProcessId() );
 
@@ -2998,13 +1941,6 @@ void MStdSRand(void)
 	tmdata = (time_t) (tmdata ^ getpid() );
 
 	srand((unsigned int)tmdata);
-	return;
-
-	/////////////////////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	tmdata=(time_t)maTime();
-	srand((unsigned int)tmdata);
-
 	return;
 
 	////////////////////////////////////////
@@ -3034,65 +1970,15 @@ int MStdRand(int maxvalue)
 
 
 ///////////////////////////////////////////////////
-bool MStdCompare(int val1,int val2,int error)
-	{
-	int diff=val1-val2;
-	if(diff>=-error && diff<=+error)
-		{ return true;  }
-
-	return false;
-	}
-
-
-///////////////////////////////////////////////////
-bool MStdCompare(unsigned int val1,unsigned int val2,unsigned int error)
-	{
-	if(val1>val2)
-		{
-		unsigned int diff=val1-val2;
-		if(diff<=(unsigned int)error)
-			{ return true;  }
-
-		return false;
-		}
-	else
-		{
-		unsigned int diff=val2-val1;
-		if(diff<=(unsigned int)error)
-			{ return true;  }
-
-		return false;		
-		}
-	}
-
-
-///////////////////////////////////////////////////
-bool MStdCompare(float val1,float val2,float error)
-	{
-	float diff=val1-val2;
-	if(diff>=-error && diff<=+error)
-		{ return true;  }
-
-	return false;
-	}
-
-
-//////////////////////////////////////////////////
-bool MStdCompare(double val1,double val2,double error)
-	{
-	double diff=val1-val2;
-	if(diff>=-error && diff<=+error)
-		{ return true;  }
-
-	return false;
-	}
-
-
-///////////////////////////////////////////////////
 unsigned int MStdGetTimeOfDay(void)
 	{
 	////////////////////////////
-	#if (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	#if defined(MSTDLIB_OS_WINDOWSRT)
+		time_t val;
+		time(&val);
+		return (unsigned int)val;
+
+	#elif (defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
 	return GetTickCount();
 
 	////////////////////////////
@@ -3103,10 +1989,6 @@ unsigned int MStdGetTimeOfDay(void)
 
 	return ((unsigned int)tv.tv_sec)*1000
 			+((unsigned int)tv.tv_usec)/1000;
-
-	////////////////////////////
-	#elif defined(MSTDLIB_OS_MOSYNC)
-	return maGetMilliSecondCount();
 
 	#endif // MSTDLIB_OS_WINDOWS
 	}
@@ -3130,8 +2012,13 @@ const double MStdLibConstPi=3.14159265358979323846;
 bool MStdGetMachineName(char *buffer,int bufferlen)
 	{
 	MStdAssert(buffer!=0 && bufferlen>40);
+	
 	////////////////////////////////////////
-	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	#if defined(MSTDLIB_OS_WINDOWSRT)
+	if(buffer!=NULL) { *buffer=0; }
+	return false;
+
+	#elif ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
 	DWORD dwbufferlen=bufferlen;
 	if(GetComputerNameA(buffer,&dwbufferlen)==FALSE)
 		{
@@ -3149,13 +2036,348 @@ bool MStdGetMachineName(char *buffer,int bufferlen)
 
 	return true;
 
+	#endif
+	}
+
+
+//////////////////////////////////////////////////////////
+bool MStdGetOSRoot(char *buffer,int bufferlen)
+	{
+	MStdAssert(buffer!=0 && bufferlen>40);
 	////////////////////////////////////////
-	#elif defined (MSTDLIB_OS_MOSYNC)
-	MStdStrCpy(buffer,bufferlen,"MoSync");
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) || defined(MSTDLIB_OS_WINDOWSRT) )
+	if(MStdStrCpy(buffer,bufferlen,"c:/")==false)
+		{
+		if(bufferlen>0) { buffer[0]=0; }
+		return false;
+		}
+
 	return true;
 
+	////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+	if(MStdStrCpy(buffer,bufferlen,"/")==false)
+		{
+		if(bufferlen>0) { buffer[0]=0; }
+		return false;
+		}
+
+	return true;
+
+	#endif	
+	}
+
+
+/////////////////////////////////////////////////////////
+bool MStdGetOSPathSeperator(char *buffer,int bufferlen)
+	{
+	MStdAssert(buffer!=0 && bufferlen>40);
+	////////////////////////////////////////
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) || defined(MSTDLIB_OS_WINDOWSRT) )
+	if(MStdStrCpy(buffer,bufferlen,";")==false)
+		{
+		if(bufferlen>0) { buffer[0]=0; }
+		return false;
+		}
+
+	return true;
+
+	////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+	if(MStdStrCpy(buffer,bufferlen,":")==false)
+		{
+		if(bufferlen>0) { buffer[0]=0; }
+		return false;
+		}
+
+	return true;
+
+	#endif	
+	}
+
+
+///////////////////////////////////////////////////////////
+bool MStdIsUnix(void)
+	{
+	////////////////////////////////////////
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	return false;
+
+	////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+	return true;
+
+	#endif		
+
+	return false;
+	}
+
+
+////////////////////////////////////////////////////////////
+bool MStdIsWindows(void)
+	{
+	////////////////////////////////////////
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) || defined(MSTDLIB_OS_WINDOWSRT) )
+	return true;
+
+	////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+	return false;
+
+	#endif		
+
+	return false;
+	}
+
+
+//////////////////////////////////////////////////////////////
+bool MStdDirGet(char *buffer,int bufferlen)
+	{
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	MStdAssert(bufferlen>1 && buffer!=NULL);
+	DWORD dlen;
+	dlen=GetCurrentDirectoryA(bufferlen-1,buffer);
+	if(dlen>=DWORD(bufferlen) || dlen<=1)
+		{
+		
+		return false;
+		}
+
+	// Ref http://msdn.microsoft.com/en-us/library/windows/desktop/aa364934%28v=vs.85%29.aspx
+	if(buffer[dlen-1]!='\\' && buffer[dlen-1]!='/' )
+		{
+		buffer[dlen]='/';
+		buffer[dlen+1]=0;
+		}
+
+	// Convert all \ -> /
+	int i;
+	for(i=0;buffer[i]!=0;++i)
+		{
+		if(buffer[i]=='\\') { buffer[i]='/'; }
+		}
+	
+	return true;	
+
+	////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+	MStdAssert(bufferlen>1 && buffer!=NULL);
+	const char *retval=getcwd(buffer,bufferlen-1);
+	if(retval==NULL)
+		{
+		return false;
+		}
+
+	const int pathlen=MStdStrLen(buffer);
+	if(buffer[pathlen-1]!='/')
+		{
+		buffer[pathlen]='/';
+		buffer[pathlen+1]=0;
+		}
+
+	return true;
+
+	#endif		
+
+	return false;
+	}
+
+
+/////////////////////////////////////////////////////////////////////////////
+bool MStdDirSet(const char *dirpath)
+	{
+	MStdAssert(dirpath!=NULL && *dirpath!=0);
+
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	BOOL retval;
+	retval=SetCurrentDirectoryA(dirpath);
+	if(retval==FALSE)
+		{
+		return false;
+		}
+	
+	return true;	
+
+	////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+	int retval;
+	retval=chdir(dirpath);
+	if(retval!=0)
+		{
+		return false;
+		}
+
+	return true;
 	#endif
 
+	return false;
+	}
+
+
+/////////////////////////////////////////////////////////////
+bool MStdDirCreate(const char *dirpath)
+	{
+	MStdAssert(dirpath!=NULL && *dirpath!=0);
+
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	BOOL retval;
+	retval=CreateDirectoryA(dirpath,NULL);
+	if(retval==FALSE)
+		{
+		return false;
+		}
+	
+	return true;	
+
+	////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+	int retval;
+	retval=mkdir(dirpath,0777);
+	if(retval!=0)
+		{
+		return false;
+		}
+
+	return true;
+	#endif
+
+	return false;
+	}
+
+
+////////////////////////////////////////////////////////////
+bool MStdDirDestroy(const char *dirpath,bool generror)
+	{
+	MStdAssert(dirpath!=NULL && *dirpath!=0);
+
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	BOOL retval;
+	retval=RemoveDirectoryA(dirpath);
+	if(retval==FALSE)
+		{
+		if(generror==true)
+			{
+			return false;
+			}
+
+		return false;
+		}
+	
+	return true;	
+
+	////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+	int retval;
+	retval=rmdir(dirpath);
+	if(retval!=0)
+		{
+		if(generror==true)
+			{
+			return false;
+			}
+
+		return false;
+		}
+
+	return true;
+	#endif
+
+	return false;
+	}
+
+
+//////////////////////////////////////////////////////
+bool MStdGetUserName(char buf[],int buflength)
+	{
+	MStdAssert(buflength>=30 && buf!=0);
+
+	///////////////////////////////////////////
+	#if ( defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	DWORD buflen=buflength;
+	BOOL ret=GetUserNameA(buf,&buflen);
+	if(ret==FALSE)
+		{
+		buf[0]=0;
+		return false;
+		}
+
+	return true;
+
+	///////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+
+	struct passwd *pdata=getpwuid(getuid());
+	if(pdata==NULL)
+		{
+		buf[0]=0;
+		return false;
+		}
+
+	MStdStrCpy(buf,pdata->pw_name);
+	return true;
+	#endif
+	}
+	
+
+//////////////////////////////////////////////////////
+bool MStdStrCpy(char *outstr,int maxoutlen,const wchar_t *str)
+	{
+	MStdAssert(str!=0 && outstr!=0 && maxoutlen>0);
+	for(int i=0;i<maxoutlen-1;++i)
+		{
+		const wchar_t ch=str[i];
+		outstr[i]=(char)ch;
+		if(ch==0) { return true; }
+		}
+
+	outstr[maxoutlen-1]=0;
+	return true;
+	}
+
+
+//////////////////////////////////////////////////////////
+bool MStdStrCpy(wchar_t *outstr,int maxoutlen,const char *str)
+	{
+	MStdAssert(str!=0 && outstr!=0 && maxoutlen>=0);
+	for(int i=0;i<maxoutlen-1;++i)
+		{
+		const char ch=str[i];
+		outstr[i] = ch;
+		if(ch==0) { return true; }
+		}
+
+	outstr[maxoutlen-1]=0;
+	return true;
+	}
+
+
+/////////////////////////////////////////////////////////////////////////////
+bool MStdStrCpy(MStdArray<wchar_t> &strout,const char *str)
+	{
+	MStdAssert(str!=0);
+	const int length=MStdStrLen(str)+1;
+	if(strout.Create(length)==false)
+		{
+		return false;
+		}
+
+	MStdStrCpy(strout.Get(),strout.GetLength(),str);
+	return true;
+	}
+
+
+/////////////////////////////////////////////////////////////////////////////
+bool MStdStrCpy(MStdArray<char> &strout,const wchar_t *str)
+	{
+	MStdAssert(str!=0);
+	const int length=MStdStrLen(str)+1;
+	if(strout.Create(length)==false)
+		{
+		return false;
+		}
+
+	MStdStrCpy(strout.Get(),strout.GetLength(),str);
+	return true;
 	}
 
 

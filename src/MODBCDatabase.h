@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v2.7  copyright Comine.com 20140531S1820
+//v2.8  copyright Comine.com 20160822M0124
 #ifndef MODBCDatabase_h
 #define MODBCDatabase_h
 

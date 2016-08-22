@@ -1,28 +1,48 @@
-#v1.1 copyright Comine.com 20140531S1105
+#v1.0 copyright Comine.com 20160822M0111
 # Simple Make file for nmake
+#  -Revised to exclude extra search libraries
 
 OUTPUT=MSQLExec.exe
 LIBS=
 CC=cl.exe
 CLINKER=link.exe
 BASELIBS=
-#Set -O2 (optimize for speed) there seems to be a bug in default optimization
-FLAGS=-nologo -DWIN32 -O2 -DNDEBUG -MT
-CFLAGS=
-CLINKFLAGS=
+FLAGS=-nologo -DWIN32 -O2 -DNDEBUG -MT -DUNICODE -D_UNICODE -D_CONSOLE -Iinclude -EHsc
+CFLAGS=-I . 
+CLINKFLAGS=                                 # /NODEFAULTLIB:LIBCMT 
 
-#########################
-all : $(OUTPUT)
+
+########### Main.exe ##############
+all : ResourceFiles $(OUTPUT)
 	@banner "Finished creating $(OUTPUT)"
+
+
+###################################
+ResourceFiles:
+	mrcgen -a
 
 
 ############ Compile Object Files ################
 .cpp.obj:
 	$(CC) -c $(CFLAGS)  $(FLAGS) $**
-	cp setargv.vc8  setargv.obj
+	-$(CC) -c $(CFLAGS)  $(FLAGS) *.c
+	cp setargv.vc14  setargv.obj
+
+
+############ Compile Object Files ################
+.c.obj:
+	$(CC) -c $(CFLAGS)  $(FLAGS) $**
+	-$(CC) -c $(CFLAGS)  $(FLAGS) *.cpp
+	cp setargv.vc14  setargv.obj
+
+
+########### Compile Resource Files ################
+*.res: *.rc
+	$(RC) -r $(RCFLAGS) $**
+
 
 ############ Link Object Files  ##################
-$(OUTPUT) : *.obj 
+$(OUTPUT) : *.obj *.res
 	$(CLINKER) $(CLINKFLAGS)  $**  $(LIBS)  $(BASELIBS)  -OUT:$@
 
 
@@ -37,6 +57,4 @@ cleanall:
 	-rm -f *.tli
 	-rm -f *.tlh
 	-rm -f $(OUTPUT)
-
-
 

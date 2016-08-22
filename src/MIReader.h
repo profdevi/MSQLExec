@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.4 copyright Comine.com 20110330W22
+//v2.0 copyright Comine.com 20150810M0910
 #ifndef MIREADER_H
 #define MIREADER_H
 

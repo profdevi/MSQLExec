@@ -30,33 +30,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v2.6  copyright Comine.com 20160822M0130
-#ifndef MErrorInfo_h
-#define MErrorInfo_h
+//v1.0 copyright Comine.com 20160630R1723
 
-/////////////////////////////////////////////
-#include "MStdLib.h"
-#include "MString.h"
+// *******************************************
+// ** Dummy C File
+// ********************************************
 
-////////////////////////////////////////////
-class MErrorInfo
-	{
-	MString mError;
-
-	////////////////////////////////////////
-	void ClearObject(void);
-
-	////////////////////////////////////////
-	protected:
-	void SetError(const char *str);
-	bool SetError(void);						// Will Set Win32 Error Info
-	bool SetError(int errornum);
-	////////////////////////////////////////
-	public:
-	MErrorInfo(void);
-	~MErrorInfo(void);
-	const char *GetError(void);
-	static bool Print(unsigned int error=0);
-	};
-
-#endif // MErrorInfo_h

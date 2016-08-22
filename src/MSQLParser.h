@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.4 copyright Comine.com 20140531S1035
+//v1.5 copyright Comine.com 20160822M0121
 #ifndef MSQLParser_h
 #define MSQLParser_h
 

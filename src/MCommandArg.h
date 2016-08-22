@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.35 copyright Comine.com 20140204T1421
+//v2.2 copyright Comine.com 20160701F0736
 #ifndef MCommandArg_h
 #define MCommandArg_h
 
@@ -67,6 +67,7 @@ class MCommandArg
 	bool CheckRemoveArg(const char *argvalue,bool casesense=false);
 	bool GetNameValue(const char *name,const char *&value
 			,int &index,bool casesense=false);//name="-size="
+	bool Show(void);									// Show all the arguments
 	};
 
 

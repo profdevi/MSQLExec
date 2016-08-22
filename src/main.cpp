@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v3.0 copyright Comine.com 20140531S1018
+//v3.1 copyright Comine.com 20160822M0131
 #include "MStdLib.h"
 #include "MCommandArg.h"
 #include "MSQLExec.h"
@@ -40,50 +40,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //* Module Elements
 //******************************************************
 static const char *GApplicationName="MSQLExec";	// Used in Help
-static const char *GApplicationVersion="3.0";	// Used in Help
+static const char *GApplicationVersion="3.1";	// Used in Help
 
-
-//////////////////////////////////////////////////////////
-static void CheckArgs(bool &stopflag,bool &pauseflag,bool &quiteflag,MCommandArg &args)
-	{
-	stopflag=false;  pauseflag=false;  quiteflag=false;
-	for(int i=3;i<args.GetArgCount();++i)
-		{
-		if(MStdStrICmp(args.GetArg(i),"-s")==0) { stopflag=true; }
-		else if(MStdStrICmp(args.GetArg(i),"-p")==0) {  pauseflag=true; }
-		else if(MStdStrICmp(args.GetArg(i),"-q")==0) {  quiteflag=true; }
-		}
-	}
+////////////////////////////////////////////////////
+static void GDisplayHelp(void);
+static void CheckArgs(bool &stopflag,bool &pauseflag,bool &quiteflag,MCommandArg &args);
 
 
 //////////////////////////////////////////////////////////
 int main(int argn,const char *argv[])
 	{
 	MCommandArg args(argn,argv);
+
 	if(args.CheckRemoveHelp()==true ||  args.GetArgCount()<3  )
 		{
-		MStdPrintf(		"\n\n"
-						" %s v%s  copyright Comine.com\n"
-						"\n"
-						"   Usage: %s <odbc> <file> [-p|-s|-?]\n"
-						"             <odbc> = ODBC Connection String\n"
-						"             <file> = File containing SQL\n"
-						"              -s    = Stop on First Error\n"
-						"              -p    = Pause after every Statement\n"
-						"              -p -s = Pause on an Error\n"
-						"              -q    = Do not Display SQL Execution stmts\n"
-						"\n"
-						"   Description:\n"
-						"   **This program will connect to a ODBC data source and execute\n"
-						"   SQL statements against that data source.  The SQL File may have\n"
-						"   SQL statements seperated with a semicolon(;) and C like comments:\n"
-						"        ie   /* Comments */   or  // Comments \n"
-						"   There is no maximum size for either the SQL Statements or the src file.\n"
-						"\n"
-						"   Example Usage:\n"
-						"        SQLExec \"DSN=TestDB;UID=john;PWD=doe\"  input.sql \n"
-						"\n",GApplicationName,GApplicationVersion,GApplicationName);
-		
+		GDisplayHelp();
 		return 0;
 		}
 
@@ -96,6 +67,46 @@ int main(int argn,const char *argv[])
 	processor.ProcessSQLFile(args.GetArg(1),args.GetArg(2)
 			,stopflag,pauseflag,quiteflag);
 	return 0;
+	}
+
+
+////////////////////////////////////////////////////
+static void GDisplayHelp(void)
+	{
+	MStdPrintf(		"\n\n"
+					" %s v%s  copyright Comine.com\n"
+					"\n"
+					"   Usage: %s <odbc> <file> [-p|-s|-?]\n"
+					"             <odbc> = ODBC Connection String\n"
+					"             <file> = File containing SQL\n"
+					"              -s    = Stop on First Error\n"
+					"              -p    = Pause after every Statement\n"
+					"              -p -s = Pause on an Error\n"
+					"              -q    = Do not Display SQL Execution stmts\n"
+					"\n"
+					"   Description:\n"
+					"   **This program will connect to a ODBC data source and execute\n"
+					"   SQL statements against that data source.  The SQL File may have\n"
+					"   SQL statements seperated with a semicolon(;) and C like comments:\n"
+					"        ie   /* Comments */   or  // Comments \n"
+					"   There is no maximum size for either the SQL Statements or the src file.\n"
+					"\n"
+					"   Example Usage:\n"
+					"        SQLExec \"DSN=TestDB;UID=john;PWD=doe\"  input.sql \n"
+					"\n",GApplicationName,GApplicationVersion,GApplicationName);
+	}
+
+
+//////////////////////////////////////////////////////////
+static void CheckArgs(bool &stopflag,bool &pauseflag,bool &quiteflag,MCommandArg &args)
+	{
+	stopflag=false;  pauseflag=false;  quiteflag=false;
+	for(int i=3;i<args.GetArgCount();++i)
+		{
+		if(MStdStrICmp(args.GetArg(i),"-s")==0) { stopflag=true; }
+		else if(MStdStrICmp(args.GetArg(i),"-p")==0) {  pauseflag=true; }
+		else if(MStdStrICmp(args.GetArg(i),"-q")==0) {  quiteflag=true; }
+		}
 	}
 
 

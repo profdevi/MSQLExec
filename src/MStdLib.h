@@ -30,17 +30,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.54 copyright Comine.com 20140617T0120
+//v2.10 copyright Comine.com 20160720W0608
 #ifndef MStdLib_h
 #define MStdLib_h
 
-/* Notes:
- MoSync :
-		1   create Compiler Define MSTDLIB_OS_MOSYNC
-		2.  Link with libraries: mautil.lib,maui.lib,mafs.lib
-			Link with libraries(Debugging): mautild.lib,mauid.lib,mafsd.lib
-
- */
+/* 
+Note Visual Studio
+	MSVC++ 14.0 _MSC_VER == 1900 (Visual Studio 2015)
+	MSVC++ 12.0 _MSC_VER == 1800 (Visual Studio 2013)
+	MSVC++ 11.0 _MSC_VER == 1700 (Visual Studio 2012)
+	MSVC++ 10.0 _MSC_VER == 1600 (Visual Studio 2010)
+	MSVC++ 9.0  _MSC_VER == 1500 (Visual Studio 2008)
+	MSVC++ 8.0  _MSC_VER == 1400 (Visual Studio 2005)
+	MSVC++ 7.1  _MSC_VER == 1310 (Visual Studio 2003)
+	MSVC++ 7.0  _MSC_VER == 1300
+	MSVC++ 6.0  _MSC_VER == 1200
+	MSVC++ 5.0  _MSC_VER == 1100
+*/
 
 //********************************************
 //** Begin of Platform Definitions
@@ -50,10 +56,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	// Older version of MSVC did not have wchar.h
 	#if (_MSC_VER>1300 )
 
-		#ifndef MSTDLIB_OS_WINDOWS
-		#define MSTDLIB_OS_WINDOWS							(1)
-		#endif // MSTDLIB_OS_WINDOWS
+		#if defined(WINAPI_FAMILY)
 
+			#ifndef MSTDLIB_OS_WINDOWSRT
+			#define MSTDLIB_OS_WINDOWSRT						(1)
+			#endif // MSTDLIB_OS_WINDOWSRT
+
+		#else 
+
+			#ifndef MSTDLIB_OS_WINDOWS
+			#define MSTDLIB_OS_WINDOWS							(1)
+			#endif // MSTDLIB_OS_WINDOWS
+
+		#endif
 	#else
 
 		#ifndef MSTDLIB_OS_WINDOWSOLD
@@ -90,11 +105,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		#endif // MSTDLIB_OS_MACOS
 	
 	#endif // __IPHONE_OS_VERSION_MIN_REQUIRED
-
-/////////////////////////////////////////
-#elif defined(MSTDLIB_OS_MOSYNC)
-
-// No Definition accept by hand
 
 /////////////////////////////////////////
 #else
@@ -134,6 +144,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include <new>
 
+#elif (defined(MSTDLIB_OS_WINDOWSRT) )
+#include <stdio.h>
+#include <stdlib.h>
+#include <memory.h>
+#include <time.h>
+#include <math.h>
+#include <new>
+#include <stdarg.h>
+
 #elif (defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
 #include <time.h>
 #include <math.h>
@@ -150,11 +169,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <time.h>
 #include <math.h>
 #include <wchar.h>
-#include <new>
-
-#elif defined(MSTDLIB_OS_MOSYNC)
-#include <matime.h>
-#include <madmath.h>
 #include <new>
 
 #endif // MSTDLIB_OS_WINDOWS
@@ -174,7 +188,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MStdAssert(exp)	MStdAssertInternal(exp,#exp,__FILE__,__LINE__)
 #endif // NDEBUG
 
-
 //********************************************
 //** Error Routines
 //********************************************
@@ -182,11 +195,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MStdDebug(infostr)		MStdError(infostr,__FILE__,__LINE__)
 #endif // MStdDebug
 
+///////////////////////////////////////////////////
+bool MStdPrintInfo(void);		// Print out information
+
 //////////////////////////////////////////////////
 void MStdAssertInternal(bool flag,const char *exp,const char *filename,int lineno);
 void MStdError(const char *info,const char *filename,int lineno);
+void MStdBreak(void);									// Break Point in Code
 
-//////////////////////////////////////////////////
+//************************************************
+//*  Limits
+//************************************************
+const int MStdPathMaxSize=4096;
+
+
+/////////////////////////////////////////////////
 // Abstract File Handles
 typedef void *MStdFileHandle;
 
@@ -225,57 +248,20 @@ const char *MStdStr(bool value);						// Build a temp string
 const char *MStdStr(int value);							// Build a temp string
 const char *MStdStr(float value);						// Build a temp string
 const char *MStdStr(double value);						// Build a temp string
-bool MStdStrCpy(char *dst,const char *src);				// String Copy
-bool MStdStrCpy(char *dst,int dstsize,const char *src);	// String Copy
-int MStdStrLen(const char *src);						// String Length
-int MStdStrCmp(const char *str1,const char *str2);		// String Compare
-int MStdStrICmp(const char *str1,const char *str2);		// String Compare
-bool MStdStrCat(char *dst,int dstsize,const char *src);	// String Catenate
-bool MStdStrBegins(const char *str,const char *prefix);	// Check if string begins with prefix
-bool MStdStrIBegins(const char *str,const char *prefix);	// Check if string begins with prefix
-bool MStdStrEnds(const char *str,const char *suffix);	// Check if string ends with suffix
-bool MStdStrIEnds(const char *str,const char *suffix);	// Check if string ends with suffix
-bool MStdIsSubStr(const char *str,const char *substring);	// Check if substring
-bool MStdIsISubStr(const char *str,const char *substring);	// Check if insensitive substring
-bool MStdStrToLower(char *str);							// Convert string to lower
-bool MStdStrToUpper(char *str);							// Convert string to lower
-bool MStdStrRemove(char *target,int pos,int length);	// Remove chars in string
-bool MStdStrInsert(char *target,int maxtargetsize,int pos,const char *insert);	// insert string at position
-int MStdStrCharCount(const char *str,char ch);			// Find Count of chars in string
-bool MStdStrTrim(char *str);							// Trim All Spaces in string
-bool MStdStrTrimRight(char *str);						// Trim spaces on Right
-bool MStdStrTrimLeft(char *str);						// Trim spaces on Left
-
 
 /////////////////////////////////////////////////
 // Wide String Operations
 int MStdSPrintf(wchar_t *target,int targetsize,const wchar_t *format,...);	// String Formated Printf
-const wchar_t *MStdStrWide(bool value);								// Build a temp string
-const wchar_t *MStdStrWide(int value);								// Build a temp string
-const wchar_t *MStdStrWide(float value);							// Build a temp string
-const wchar_t *MStdStrWide(double value);							// Build a temp string
-bool MStdStrCpy(wchar_t *dst,const wchar_t *src);					// String Copy
-bool MStdStrCpy(wchar_t *dst,int dstsize,const wchar_t *src);		// String Copy
-int MStdStrLen(const wchar_t *src);									// String Length
-int MStdStrCmp(const wchar_t *str1,const wchar_t *str2);			// String Compare
-int MStdStrICmp(const wchar_t *str1,const wchar_t *str2);			// String Compare
-bool MStdStrCat(wchar_t *dst,int dstsize,const wchar_t *src);		// String Catenate
-bool MStdStrBegins(const wchar_t *str,const wchar_t *prefix);		// Check if string begins with prefix
-bool MStdStrIBegins(const wchar_t *str,const wchar_t *prefix);		// Check if string begins with prefix
-bool MStdStrEnds(const wchar_t *str,const wchar_t *suffix);			// Check if string ends with suffix
-bool MStdStrIEnds(const wchar_t *str,const wchar_t *suffix);		// Check if string ends with suffix
-bool MStdIsSubStr(const wchar_t *str,const wchar_t *substring);		// Check if substring
-bool MStdIsISubStr(const wchar_t *str,const wchar_t *substring);	// Check if insensitive substring
-bool MStdStrToLower(wchar_t *str);						// Convert string to lower
-bool MStdStrToUpper(wchar_t *str);						// Convert string to lower
-bool MStdStrRemove(wchar_t *target,int pos,int length);	// Remove chars in string
-bool MStdStrInsert(wchar_t *target,int maxtargetsize,int pos,const wchar_t *insert);	// insert string at position
-int MStdStrCharCount(const wchar_t *str,wchar_t ch);	// Find Count of chars in string
-bool MStdStrTrim(wchar_t *str);							// Trim All Spaces in string
-bool MStdStrTrimRight(wchar_t *str);					// Trim spaces on Right
-bool MStdStrTrimLeft(wchar_t *str);						// Trim spaces on Left
-bool MStdStrClean(char *buffer);						// Clean out the string of non printable characters. \r \n are not printable
-bool MStdStrClean(wchar_t *buffer);						// Clean out the string of non printable characters. \r \n are not printable
+const wchar_t *MStdStrWide(bool value);					// Build a temp string
+const wchar_t *MStdStrWide(int value);					// Build a temp string
+const wchar_t *MStdStrWide(float value);				// Build a temp string
+const wchar_t *MStdStrWide(double value);				// Build a temp string
+
+//////////////////////////////////////////////////
+bool MStdStrIsMember(char ch,const char *str);			// Check if char is in string
+bool MStdStrIsMember(wchar_t ch,const wchar_t *str);	// Check if char is in string
+bool MStdStrRemoveChars(char *modifystr,const char *removechars);
+bool MStdStrRemoveChars(wchar_t *modifystr,const wchar_t *removechars);
 
 //////////////////////////////////////////////////
 // Extra Functions
@@ -285,37 +271,13 @@ bool MStdExit(int value);								// Exit application
 
 //////////////////////////////////////////////////
 // Char Functions
-bool MStdIsPrintable(char ch);							// =true if ch is printable(32-126). \r or \n are not printable
-bool MStdIsSpace(char ch);								// =true if space
-bool MStdIsDigit(char ch);
-bool MStdIsAlpha(char ch);
-bool MStdIsAlphaNumeric(char ch);
-bool MStdIsUpper(char ch);
-bool MStdIsLower(char ch);
-bool MStdIsBinary(char ch);
-bool MStdIsOctal(char ch);
-bool MStdIsHex(char ch);
-char MStdToBinary(int value);							// Value is 0 or 1
-char MStdToOctal(int value);							// Value is 0-7
-char MStdToHex(int value);								// Value is 0 or 15
-int MStdFromBinary(char ch);
-int MStdFromOctal(char ch);			
-int MStdFromHex(char ch);			
-char MStdToLower(char ch);
-char MStdToUpper(char ch);
 bool MStdIsNan(double val);								// Check if float is Not A Number
 bool MStdIsFinite(double val);							// Check if number is finite
 
-////////////////////////////////////////////////////
-// Wide Char Functions
-bool MStdIsSpace(wchar_t ch);
-bool MStdIsDigit(wchar_t ch);
-bool MStdIsAlpha(wchar_t ch);
-bool MStdIsAlphaNumeric(wchar_t ch);
-bool MStdIsUpper(wchar_t ch);
-bool MStdIsLower(wchar_t ch);
-wchar_t MStdToLower(wchar_t ch);
-wchar_t MStdToUpper(wchar_t ch);
+/////////////////////////////////////////////////
+bool MStdGetEnvVar(const char *var,char *buf,int buflen);		// Get Environment variable
+bool MStdGetUserHome(char *buf,int buflen);				// Return the home directory of user
+
 
 //////////////////////////////////////////////////
 // Memory Functions
@@ -354,16 +316,8 @@ double MStdAToF(const wchar_t *str);					// Convert string to double
 void *MStdIToP(int val);								// Convert integer to pointer
 int MStdPToI(void *val);								// Convert pointer to integer
 
-int MStdGetMax(int value1,int value2);					// Get Max of two values
-float MStdGetMax(float value1,float value2);			// Get Max of two values
-double MStdGetMax(double value1,double value2);			// Get Max of two values
-int MStdGetMin(int value1,int value2);					// Get Min of two values
-float MStdGetMin(float value1,float value2);			// Get Min of two values
-double MStdGetMin(double value1,double value2);			// Get Min of two values
-int MStdGetAbs(int value);								// Get Absolute Value
-float MStdGetAbs(float value);							// Get Absolute Value
-double MStdGetAbs(double value);						// Get Absolute Value
-
+//// Get Sum of array
+int MStdGetMidIndex(const double *data,int datacount);	// Get the first index of the approximate middle element assuming mostly positive data
 
 //////////////////////////////////////////////////
 // Random Number Generation
@@ -371,12 +325,272 @@ void MStdSRand(void);									// Seed based on time
 void MStdSRand(int seed);								// Seed
 int MStdRand(int range=32767);							// Weak Random Number
 
+//*******************************************************************
+//** Template Functions
+//*******************************************************************
+////////////////////////////////////////////////////////
+// Check if type is printable character
+template <typename Type>
+bool MStdIsPrintable(Type ch)
+	{
+	if(ch>=32 && ch<=126) { return true; }
+	return false;
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if character is a space
+template <typename Type>
+bool MStdIsSpace(Type ch)
+	{
+	if(ch==' ' || ch=='\r' || ch=='\n' || ch=='\t')
+		{
+		return true;
+		}
+
+	return false;
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if character is a digit
+template <typename Type>
+bool MStdIsDigit(Type ch)
+	{
+	if(ch>='0' && ch<='9')
+		{
+		return true;
+		}
+
+	return false;
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if character is an alphabetic
+template <typename Type>
+bool MStdIsAlpha(Type ch)
+	{
+	if(ch>='a' && ch<='z')
+		{
+		return true;
+		}
+
+	if(ch>='A' && ch<='Z')
+		{
+		return true;
+		}
+
+	return false;
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if character is a alpgabetic or a digit
+template <typename Type>
+bool MStdIsAlphaNumeric(Type ch)
+	{
+	if(ch>='a' && ch<='z')
+		{
+		return true;
+		}
+
+	if(ch>='A' && ch<='Z')
+		{
+		return true;
+		}
+
+	if(ch>='0' && ch<='9')
+		{
+		return true;
+		}
+
+	return false;
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if character is uppercase
+template <typename Type>
+bool MStdIsUpper(Type ch)
+	{
+	if(ch>='A' && ch<='Z')
+		{
+		return true;
+		}
+
+	return false;	
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if character is lowercase
+template <typename Type>
+bool MStdIsLower(Type ch)
+	{
+	if(ch>='a' && ch<='z')
+		{
+		return true;
+		}
+
+	return false;
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if character is binary
+template <typename Type>
+bool MStdIsBinary(Type ch)
+	{
+	if(ch=='0' || ch =='1')
+		{ return true; }
+
+	return false;
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if character is octal
+template <typename Type>
+bool MStdIsOctal(Type ch)
+	{
+	if(ch>='0' && ch <='7')
+		{ return true; }
+
+	return false;
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if character is a digit
+template <typename Type>
+bool MStdIsHex(Type ch)
+	{
+	if(ch>='0' && ch <='9')
+		{ return true; }
+
+	if(ch>='a' && ch<='f')
+		{ return true;  }
+
+	if(ch>='A' && ch<='F')
+		{ return true;  }
+
+	return false;	
+	};
+
+
+////////////////////////////////////////////////////////
+// Convert character from lower case to uppercase
+template<typename Type>
+Type MStdToLower(Type ch)
+	{
+	if(ch>='A' && ch<='Z')
+		{ ch = ch - 'A' + 'a'; }
+
+	return ch;
+	};
+
+
+///////////////////////////////////////////////////////
+// Convert character to upper case
+template <typename Type>
+Type MStdToUpper(Type ch)
+	{
+	if(ch>='a' && ch<='z')
+		{ ch = ch - 'a' + 'A'; }
+
+	return ch;
+	};
+
+
+////////////////////////////////////////////////////////
+// Convert Binary Character to integer
+template<typename Type>
+int MStdFromBinary(Type ch)
+	{
+	MStdAssert(ch=='0' || ch=='1');
+	if(ch=='0')
+		{  return 0; }
+
+	if(ch=='1')
+		{  return 1;  }
+
+	MStdDebug("Unable to convert char to binary");
+	return 0;
+	}
+
+
+////////////////////////////////////////////////////////
+// Convert Octal Character to integer
+template<typename Type>
+int MStdFromOctal(Type ch)
+	{
+	MStdAssert(ch>='0' || ch<='7');
+	return ch-'0';
+	}
+
+
+////////////////////////////////////////////////////////
+// Convert Hexadecimal Character to integer
+template<typename Type>
+int MStdFromHex(Type ch)
+	{
+	if(ch>='0' && ch<='9')
+		{  return ch-'0';  }
+
+	if(ch>='a' && ch<='f')
+		{  return 10+ch-'a';  }
+
+	if(ch>='A' && ch<='F')
+		{  return 10+ch-'A';  }
+
+	return 0;
+	}
+
+
+//////////////////////////////////////////////////
+// Place Random Integers into array
+template<typename Type>
+bool MStdRand(Type ar[],int count)
+	{
+	Type *p;
+	for(p=ar+count-1;p>=ar;--p)
+		{
+		*p = (Type) MStdRand();
+		}
+
+	return true;
+	}
+
+
 //////////////////////////////////////////////////
 // Compare Two Numbers
-bool MStdCompare(int val1,int val2,int error);			// check |val2-val1|<=error
-bool MStdCompare(unsigned int val1,unsigned int val2,unsigned int error);	// check |val2-val1|<=error
-bool MStdCompare(float val1,float val2,float error);	// check |val2-val1|<=error
-bool MStdCompare(double val1,double val2,double error);	// check |val2-val1|<=error
+template<typename Type>
+bool MStdCompare(const Type &val1,const Type &val2,const Type &error)
+	{
+	MStdAssert(error>=0);
+	if(val1>=val2-error && val1<=val2+error)
+		{
+		return true;
+		}
+
+	return false;
+	};
+
+//////////////////////////////////////////////////
+// Compare Two Numbers
+template<typename Type>
+bool MStdInRange(const Type &val, const Type &minval, const Type &maxval)
+	{
+	MStdAssert(minval<=maxval);
+	if (val>= minval && val <=maxval)
+		{
+		return true;
+		}
+
+	return false;
+	};
+
 
 //////////////////////////////////////////////////
 // Time Functions
@@ -397,39 +611,984 @@ inline double MStdPower(const double &base,const double &exp)
 inline double MStdSqrt(const double &val)
 	{  return sqrt(val);  }
 
-//////////////////////////////////////////////////
-// Absolute functions
-inline int MStdAbs(int val)
-	{
-	if(val>=0) { return val; }
-	return -val;
-	}
-
-
-//////////////////////////////////////////////////
-inline float MStdAbs(const float &val)
-	{
-	if(val>=0) { return val; }
-	return -val;
-	}
-
-
-//////////////////////////////////////////////////
-inline double MStdAbs(const double &val)
-	{
-	if(val>=0) { return val; }
-	return -val;
-	}
-
 
 //////////////////////////////////////////////////
 // Some Well Known Constants
 extern const double MStdLibConstPi;
 
 //////////////////////////////////////////////////
-// Platform Machine Name
+// Platform Specific Information
 bool MStdGetMachineName(char *buffer,int bufferlen);
+bool MStdGetOSRoot(char *buffer,int bufferlen);					// returns: "c:/" or "/" based on os
+bool MStdGetOSPathSeperator(char *buffer,int bufferlen);		// returns: ";" or ":"
+bool MStdIsUnix(void);											//=true if UNIX like OS (Linux,...)
+bool MStdIsWindows(void);										//=true if on MS Windows OS
+bool MStdDirGet(char *buffer,int bufferlen);					// Gets the current working directory "C:/../". "/" is always in the directory
+bool MStdDirSet(const char *dirpath);							// Sets the current directory
+bool MStdDirCreate(const char *dirpath);						// Create a new directory
+bool MStdDirDestroy(const char *dirpath,bool generror=false);	// Remove a directory
+bool MStdGetUserName(char buf[],int buflength);					// Get the user name of current user
 
+
+//////////////////////////////////////////////////
+// Call back functions
+struct MStdLibIAction
+	{
+	virtual bool OnAction(void)=0;
+	};
+
+
+//////////////////////////////////////////////////
+// Simple Tamplate Functions
+//////////////////////////////////////////////////
+
+/////////////////////////////////////////////////
+// Template Functor
+template<typename Type>
+struct MStdFunctor
+	{
+	virtual Type operator()(Type ref)=0;
+	};
+
+
+//////////////////////////////////////////////
+template<typename Type>
+void MStdSwap(Type &one,Type &two)
+	{
+	Type tmp;
+	tmp=one;
+	one=two;
+	two=tmp;
+	}
+
+
+//////////////////////////////////////////////
+// Sort of two variables
+template<typename Type>
+void MStdSortAscending(Type &var1,Type &var2)
+	{
+	if(var1>var2) {  MStdSwap(var1,var2);  }
+	};
+
+
+//////////////////////////////////////////////
+// Sort Three Variables
+template<typename Type>
+void MStdSortAscending(Type &var1, Type &var2,Type &var3)
+	{
+	if (var1>var2) { MStdSwap(var1,var2); }
+	if(var2>var3) { MStdSwap(var2,var3); }
+	if(var1>var2) { MStdSwap(var1,var2); }
+	};
+
+
+//////////////////////////////////////////////
+// Sort of passed arrays into ascending order
+template<typename Type>
+bool MStdSortAscending(Type ar[],int count)
+	{
+	MStdAssert(count>0);
+	// Simple \Theta(n^2) sort
+	Type *p,*q;
+	for(p=ar+count-1;p>ar;--p)
+		{
+		for(q=ar;q<p;++q)
+			{
+			if(*p < *q) { MStdSwap(*p,*q); }
+			}
+		}
+
+	return true;
+	};
+
+
+//////////////////////////////////////////////
+// Sort of two variables
+template<typename Type>
+void MStdSortDescending(Type &var1,Type &var2)
+	{
+	if(var1<var2) {  MStdSwap(var1,var2);  }
+	};
+
+
+//////////////////////////////////////////////
+// Sort Three Variables
+template<typename Type>
+void MStdSortDescending(Type &var1, Type &var2,Type &var3)
+	{
+	if (var1<var2) { MStdSwap(var1,var2); }
+	if(var2<var3) { MStdSwap(var2,var3); }
+	if(var1<var2) { MStdSwap(var1,var2); }
+	};
+
+
+
+//////////////////////////////////////////////
+// Sort of passed arrays into descending order
+template<typename Type>
+bool MStdSortDescending(Type ar[],int count)
+	{
+	MStdAssert(count>0);
+	// Simple \Theta(n^2) sort
+	Type *p,*q;
+	for(p=ar+count-1;p>ar;--p)
+		{
+		for(q=ar;q<p;++q)
+			{
+			if(*p > *q) { MStdSwap(*p,*q); }
+			}
+		}
+
+	return true;
+	};
+
+
+///////////////////////////////////////
+// check if array is increasing array
+template<typename Type>
+bool MStdIsNonDecreasing(Type ar[],int count)
+	{
+	MStdAssert(count>0);
+
+	Type *p;
+	for(p=ar+count-1;p>ar;--p)
+		{
+		if(*(p-1)>*p) { return false; }
+		}
+	
+	return true;
+	};
+
+
+///////////////////////////////////////
+// Check if array is in decreasing array
+template<typename Type>
+bool MStdIsNonIncreasing(Type ar[],int count)
+	{
+	MStdAssert(count>0);
+
+	Type *p;
+	for(p=ar+count-1;p>ar;--p)
+		{
+		if(*(p-1)<*p) { return false; }
+		}
+	
+	return true;
+	};
+
+
+///////////////////////////////////////////////////
+// Get Maximum Value
+template<typename Type>
+Type MStdGetMax(Type value1,Type value2)
+	{
+	if(value1>value2) { return value1; }
+	return value2;
+	};
+
+
+///////////////////////////////////////////////////
+// Get Minimum Value
+template<typename Type>
+Type MStdGetMin(Type value1,Type value2)
+	{
+	if(value1<value2) { return value1; }
+	return value2;
+	};
+
+
+///////////////////////////////////////////////////
+// Get Absolute Value
+template<typename Type>
+Type MStdGetAbs(Type val)
+	{
+	if(val<0) { return -val; }
+	return val;
+	};
+
+
+///////////////////////////////////////////////////
+// Get the Min Value in the array
+template<typename Type>
+Type MStdGetMin(Type const * const ar,int datacount)
+	{
+	MStdAssert(ar!=NULL && datacount>0);
+	Type const * const endpos=ar+datacount;
+	Type minval=*ar;
+	Type const *p;
+	for(p=ar+1;p<endpos;++p)
+		{
+		if(*p<minval) { minval=*p;  }
+		}
+
+	return minval;
+	};
+
+
+///////////////////////////////////////////////////
+// Get the Max Value in the array
+template<typename Type>
+Type MStdGetMax(Type const * const ar,int datacount)
+	{
+	MStdAssert(ar!=NULL && datacount>0);
+	Type const * const endpos=ar+datacount;
+	Type maxval=*ar;
+	Type const *p;
+	for(p=ar+1;p<endpos;++p)
+		{
+		if(*p>maxval) { maxval=*p;  }
+		}
+
+	return maxval;
+	};
+
+
+///////////////////////////////////////////////////
+// Get the Max Index Position
+template<typename Type>
+int MStdGetMaxIndex(const Type data[],int datacount)
+	{
+	int maxindex=0;
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]>data[maxindex]) { maxindex=i; }
+		}
+
+	return maxindex;
+	};
+
+
+///////////////////////////////////////////////////
+// Get the Minimum Index position
+template<typename Type>
+int MStdGetMinIndex(const Type data[],int datacount)
+	{
+	int minindex=0;
+	int i;
+	for(i=1;i<datacount;++i)
+		{
+		if(data[i]>data[minindex]) { minindex=i; }
+		}
+
+	return minindex;
+	};
+
+
+///////////////////////////////////////////////////
+// Find the sum of an array
+template<typename Type>
+Type MStdGetSum(const Type ar[],int datacount)
+	{
+	Type sum=0;
+	int i;
+	for(i=0;i<datacount;++i)
+		{
+		sum = sum + ar[i];
+		}
+
+	return sum;
+	};
+
+///////////////////////////////////////////////////
+// Check if member is in array
+template<typename Type>
+bool MStdIsMember(Type member,const Type ar[],int datacount)
+	{
+	for(int i=0;i<datacount;++i)
+		{
+		if(ar[i]==member) { return true; }
+		}
+
+	return false;
+	}
+
+
+////////////////////////////////////////////////////
+// Find the absolute of a passed value
+template <typename Type>
+Type MStdAbs(const Type &val)
+	{
+	if(val<0) { return -val; }
+	return val;
+	};
+
+
+////////////////////////////////////////////////
+// String Copy
+template<typename Type>
+bool MStdStrCpy(Type *dst,const Type *src)
+	{
+	Type *q=dst;
+	const Type *s=src;
+	while((*q++=*s++)!=0)
+		{
+		// Empty Body
+		}
+
+	return true;
+	}
+
+
+//////////////////////////////////////////////
+// String Copy
+template <typename Type>
+bool MStdStrCpy(Type *dst,int dstsize,const Type *src)
+	{
+	Type *q=dst;
+	const Type *s=src;
+	int length;
+	for(length=1;(*q++=*s++)!=0;length=length+1)
+		{
+		if(length>=dstsize)
+			{
+			dst[dstsize-1]=0;
+			return false;
+			}
+		}
+	
+	return true;	
+	};
+
+
+///////////////////////////////////////////////////
+// String Length
+template <typename Type>
+int MStdStrLen(const Type *src)
+	{
+	int length;
+	for(length=0;*src!=0;++src)
+		{  length=length+1;  }
+
+	return length;	
+	};
+
+
+////////////////////////////////////////////
+// String Copy
+template<typename Type>
+int MStdStrCmp(const Type *str1,const Type *str2)
+	{
+	const Type *p=str1;
+	const Type *q=str2;
+	for(;;)
+		{
+		if(*p!=*q)
+			{
+			// Return first difference
+			return *p - *q;
+			}
+
+		// check for exit
+		if(*p==0) { return 0; }
+
+		// Increase pointers
+		p=p+1;
+		q=q+1;
+		}	
+	};
+
+
+///////////////////////////////////////
+// Insensitive Compare
+template <typename Type>
+int MStdStrICmp(const Type *str1,const Type *str2)
+	{
+	Type ch1;
+	Type ch2;
+	const Type *p=str1;
+	const Type *q=str2;
+	for(;;)
+		{
+		ch1=MStdToLower(*p);
+		ch2=MStdToLower(*q);
+		if(ch1!=ch2)
+			{
+			// Return first difference
+			return ch1 - ch2;
+			}
+
+		// check for exit
+		if(ch1==0) { return 0; }
+
+		// Increase pointers
+		p=p+1;
+		q=q+1;
+		}		
+	};
+
+
+////////////////////////////////////////////////
+// Catenate one string to another
+template<typename Type>
+bool MStdStrCat(Type *dst,int dstsize,const Type *src)
+	{
+	// Find end of string
+	int endindex;
+	for(endindex=0;dst[endindex]!=0;endindex=endindex+1)
+		{
+		// Nothing to Do
+		}
+
+	int srcendindex;
+	for(srcendindex=0;src[srcendindex]!=0;++srcendindex)
+		{
+		// Nothing to do
+		}
+
+	//=End index is at the \0 of the first string
+
+	if(endindex+srcendindex+1>dstsize)
+		{
+		return false;
+		}
+
+	int i;
+	for(i=0; ;++i)
+		{
+		dst[endindex]=src[i];
+		if(src[i]==0) { return true; }
+
+		// Increase the endindex by 1
+		endindex = endindex + 1;
+		}	
+	};
+
+
+/////////////////////////////////////////////////////
+// Check if a prefix string starts another
+template<typename Type>
+bool MStdStrBegins(const Type *str,const Type *prefix)
+	{
+	if(str==NULL || prefix==NULL || *prefix==0)
+		{
+		// Bad Input strings
+		return false;
+		}
+
+	int i;
+	for(i=0;prefix[i]!=0;++i)
+		{
+		if(str[i]!=prefix[i])
+			{
+			return false;
+			}
+		}
+
+	//=We checked all the chars upto 0
+
+	return true;
+	};
+
+
+//////////////////////////////////////////////////////
+// Check if a case insensitve prefix string starts another
+template <typename Type>
+bool MStdStrIBegins(const Type *str,const Type *prefix)
+	{
+	if(str==NULL || prefix==NULL || *prefix==0)
+		{
+		// Bad Input strings
+		return false;
+		}
+
+	int i;
+	for(i=0;prefix[i]!=0;++i)
+		{
+		if(MStdToUpper(str[i])!=MStdToUpper(prefix[i]) )
+			{
+			return false;
+			}
+		}
+
+	//=We checked all the chars upto 0
+
+	return true;	
+	};
+
+
+///////////////////////////////////////////////////////
+// Check if a string is a suffix of another string
+template<typename Type>
+bool MStdStrEnds(const Type *str,const Type *suffix)
+	{
+	MStdAssert(str!=NULL);
+	MStdAssert(suffix!=NULL);
+
+	// Find the end of the string
+	int length1=MStdStrLen(str);
+	int length2=MStdStrLen(suffix);
+
+	if(length2>length1)
+		{  return false;  }
+
+	if(length2==length1)
+		{  return MStdStrBegins(str,suffix);  }
+	
+	//=Now we should check for comparison
+	
+	return MStdStrBegins(str+length1-length2,suffix);
+	};
+
+
+////////////////////////////////////////////////////////
+// Check if a case insensitive string is a suffix of a string
+template<typename Type>
+bool MStdStrIEnds(const Type *str,const Type *suffix)
+	{
+	MStdAssert(str!=NULL);
+	MStdAssert(suffix!=NULL);
+
+	// Find the end of the string
+	int length1=MStdStrLen(str);
+	int length2=MStdStrLen(suffix);
+
+	if(length2>length1)
+		{  return false;  }
+
+	if(length2==length1)
+		{  return MStdStrIBegins(str,suffix);  }
+	
+	//=Now we should check for comparison
+	
+	return MStdStrIBegins(str+length1-length2,suffix);
+	};
+
+
+/////////////////////////////////////////////////////////
+// Check if substring is in a string
+template<typename Type>
+bool MStdIsSubStr(const Type *str,const Type *substring)
+	{
+	// Check if either are strings
+	if(str==NULL || substring==NULL || *substring==0)
+		{
+		return false;
+		}
+
+	int i;
+	for(i=0;str[i]!=0;++i)
+		{
+		if(MStdStrBegins(str+i,substring)==true)
+			{
+			//=We have found the substring
+			return true;
+			}
+		}
+
+	return false;
+	};
+
+
+//////////////////////////////////////////////////////////
+// Check if the case insensitive substring is in a string
+template <typename Type>
+bool MStdIsISubStr(const Type *str,const Type *substring)
+	{
+	// Check if either are strings
+	if(str==NULL || substring==NULL || *substring==0)
+		{
+		return false;
+		}
+
+	int i;
+	for(i=0;str[i]!=0;++i)
+		{
+		if(MStdStrIBegins(str+i,substring)==true)
+			{
+			//=We have found the substring
+			return true;
+			}
+		}
+
+	return false;
+	};
+
+
+////////////////////////////////////////////////////
+// Lowers the String Case
+template<typename Type>
+bool MStdStrToLower(Type *str)
+	{
+	if(str==NULL)
+		{  return false;  }
+
+	int i;
+	for(i=0;str[i]!=0;++i)
+		{  str[i]=MStdToLower(str[i]);  }
+
+	return true;
+	};
+
+
+/////////////////////////////////////////////
+// Upper Cases the string
+template <typename Type>
+bool MStdStrToUpper(Type *str)
+	{
+	if(str==NULL)
+		{  return false;  }
+
+	int i;
+	for(i=0;str[i]!=0;++i)
+		{  str[i]=MStdToUpper(str[i]);  }
+
+	return true;
+	};
+
+
+///////////////////////////////////////////////////
+// Remove a sub portion of a string
+template<typename Type>
+bool MStdStrRemove(Type *target,int pos,int length)
+	{
+	if(target==NULL)
+		{  return false; }
+
+	int strlength=MStdStrLen(target);
+	if(pos<0 || pos>strlength)
+		{
+		return false;
+		}
+
+	if(pos+length>strlength)
+		{  length=strlength-pos;  }
+
+	// Now we start copying overwriting original
+	int i;
+	for(i=0; ;++i)
+		{
+		target[pos+i]=target[pos+length+i];
+		if(target[pos+i]==0)
+			{  break;  }
+		}
+
+	return true;
+	};
+
+
+/////////////////////////////////////////////////////////
+// Insert a string into another
+template<typename Type>
+bool MStdStrInsert(Type *target,int maxtargetsize,int pos,const Type *insert)
+	{
+	if(target==NULL || insert==NULL)
+		{  return false;  }
+
+	int targetlength=MStdStrLen(target);
+	int sourcelength=MStdStrLen(insert);
+	if(targetlength+sourcelength>=maxtargetsize)
+		{
+		return false;
+		}
+
+	if(pos<0 || pos>targetlength)
+		{
+		return false;
+		}
+	
+	// Copy backwards
+	int i;
+	for(i=targetlength;i>=pos;--i)
+		{
+		target[i+sourcelength]=target[i];
+		}
+
+	// Place String at position
+	for(i=0;i<sourcelength;++i)
+		{
+		target[pos+i]=insert[i];
+		}
+
+	return true;
+	};
+
+
+/////////////////////////////////////////////
+// Find count of Type Values in a String
+template<typename Type>
+int MStdStrCharCount(const Type *str,char ch)
+	{
+	if(str==NULL)
+		{  return 0; }
+
+	const Type *p;
+	int count;
+
+	count=0;
+	for(p=str;*p!=0;++p)
+		{
+		if(*p==ch)
+			{ count=count+1;  }
+		}
+
+	return count;
+	};
+
+
+/////////////////////////////////////////////////////////
+// Trim the string for blanks
+template<typename Type>
+bool MStdStrTrim(Type *str)
+	{
+	Type *src;
+	Type *dst;
+	if(str==NULL)
+		{
+		return false;
+		}
+
+	for(src=dst=str;*src!=0;++src)
+		{
+		if(MStdIsSpace(*src)==true)
+			{ continue; }
+
+		*dst++=*src;
+		}
+
+	*dst=0;
+	return true;
+	};
+
+
+/////////////////////////////////////////////////////////
+// Trim spaces from the right of the string
+template<typename Type>
+bool MStdStrTrimRight(Type *str)
+	{
+	Type *src;
+	for(src=str;*src!=0;++src) { } // Find End
+
+	for(src=src-1; src>=str ;--src)
+		{
+		if(MStdIsSpace(*src)==false)
+			{ break; }
+
+		*src=0;
+		}
+
+	return true;	
+	};
+
+
+////////////////////////////////////////////////////////
+// Trim Spaces from the beginning of a string
+template<typename Type>
+bool MStdStrTrimLeft(Type *str)
+	{
+	Type *src;
+	Type *dst;
+	for(src=str;*src!=0;++src)
+		{
+		if(MStdIsSpace(*src)==false)
+			{ break; }
+		}
+
+	// Copy String
+	for(dst=str; ;++dst)
+		{
+		if((*dst=*src)==0)
+			{ break; }
+
+		src=src+1;
+		}
+
+	return true;	
+	};
+
+
+/////////////////////////////////////////////////////////
+// Clean out any non printable characters
+template <typename Type>
+bool MStdStrClean(Type *buffer)
+	{
+	Type *src;
+	Type *dst;
+	for(src=dst=buffer; ;++src )
+		{
+		if(*src==0)
+			{
+			*dst = 0;
+			return true;
+			}
+
+		if(MStdIsPrintable(*src)==true)
+			{
+			*dst=*src;
+			dst = dst + 1;
+			continue;
+			}
+		}
+
+	return true;
+	};
+
+
+////////////////////////////////////////////////////////////
+template <typename DataType>
+class MStdUniquePtr
+	{
+	DataType *mObjectPtr;
+
+	/////////////////////////////////////
+	public:
+	MStdUniquePtr(void)
+		{
+		mObjectPtr=0;
+		}
+
+
+	/////////////////////////////////////
+	MStdUniquePtr(DataType *newobject)
+		{
+		mObjectPtr=newobject;
+		}
+
+	/////////////////////////////////////
+	~MStdUniquePtr(void)
+		{
+		Destroy();
+		}
+
+	/////////////////////////////////////
+	bool Create(DataType *newobject)
+		{
+		Destroy();
+		mObjectPtr=newobject;
+		return true;
+		}
+
+	/////////////////////////////////////
+	bool Destroy(void)
+		{
+		if(mObjectPtr!=0){  delete mObjectPtr;  }
+		mObjectPtr=0;
+		return true;
+		}
+
+	//////////////////////////////////////
+	DataType *Get(void) const
+		{
+		return mObjectPtr;
+		}
+
+	//////////////////////////////////////
+	DataType & operator *(void)
+		{
+		MStdAssert(mObjectPtr!=0);
+		return *mObjectPtr;
+		}
+
+	/////////////////////////////////////
+	DataType * operator->(void)
+		{
+		MStdAssert(mObjectPtr!=0);
+		return mObjectPtr;
+		}
+
+	/////////////////////////////////////
+	DataType *Release(void)
+		{
+		DataType *retpointer=mObjectPtr;
+		mObjectPtr=0;
+		return retpointer;
+		}
+	};
+
+
+///////////////////////////////////////////////////////////
+// Simple Value Type Array
+template <typename DataType>
+class MStdArray
+	{
+	DataType *mArray;
+	int mArrayLength;
+
+	//////////////////////////////////////////////////////
+	public:
+	MStdArray(void)
+		{
+		mArray=0;
+		mArrayLength=0;
+		}
+
+	//////////////////////////////////////////////////////
+	MStdArray(int length)
+		{
+		if(Create(length)==false)
+			{
+			return;
+			}
+		}
+
+	//////////////////////////////////////////////////////
+	~MStdArray(void)
+		{
+		Destroy();
+		}
+
+	////////////////////////////////////////////////////////
+	bool Create(int length)
+		{
+		Destroy();
+
+		mArray=new DataType[length];
+		if(mArray==0)
+			{
+			return false;
+			}
+
+		mArrayLength=length;
+		return true;
+		}
+
+	////////////////////////////////////////////////////////
+	bool Destroy(void)
+		{
+		if(mArray!=0)
+			{
+			delete []mArray;
+			}
+
+		mArray=0;
+		mArrayLength=0;
+		return true;		
+		}
+
+
+	////////////////////////////////////////////////////
+	operator DataType *(void)
+		{
+		return mArray;
+		}
+
+	///////////////////////////////////////////////////
+	DataType *Get(void) const
+		{
+		return mArray;
+		}
+
+	///////////////////////////////////////////////////
+	DataType & operator[](int index)
+		{
+		MStdAssert(index>=0 && index<mArrayLength);
+		return mArray[index];
+		}
+
+	//////////////////////////////////////////////////
+	int GetLength(void) const
+		{
+		return mArrayLength;
+		}
+	};
+
+
+////////////////////////////////////////////////////////////////
+// Quick String Allocator for char/widechar MStdArray
+bool MStdStrCpy(char *outstr,int maxoutlen,const wchar_t *str);		// Convert wide asciiz string to asciiz
+bool MStdStrCpy(wchar_t *outstr,int maxoutlen,const char *str);		// Convert asciiz string to wide unicode
+bool MStdStrCpy(MStdArray<wchar_t> &strout,const char *str);		// Convert ascii strin to wide
+bool MStdStrCpy(MStdArray<char> &strout,const wchar_t *str);		// Convert wide string to asciiz
 
 #endif // MStdLib_h
 

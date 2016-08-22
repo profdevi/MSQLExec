@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v1.35 copyright Comine.com 20140204T1421
+//v2.2 copyright Comine.com 20160701F0736
 #include "MStdLib.h"
 #include "MString.h"
 #include "MCommandParser.h"
@@ -393,7 +393,6 @@ bool MCommandArg::RemoveArg(int index)
 ///////////////////////////////////////
 int MCommandArg::GetArgCount(void)
 	{
-
 	return mArg;
 	}
 
@@ -478,6 +477,19 @@ bool MCommandArg::GetNameValue(const char *name
 
 	value=0;  index=-1;
 	return false;
+	}
+
+
+////////////////////////////////////////////////////////////
+bool MCommandArg::Show(void)
+	{
+	const int count=GetArgCount();
+	for(int i=0;i<count;++i)
+		{
+		MStdPrintf(" Argument %2d : %s\n",i,GetArg(i) );
+		}
+
+	return true;
 	}
 
 

@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v2.0 copyright Comine.com 20140513T0854
+//v3.0 copyright Comine.com 20150810M1144
 #include "MStdLib.h"
 #include "TVector.h"
 #include "MStringBuffer.h"

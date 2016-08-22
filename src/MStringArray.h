@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v2.0 copyright Comine.com 20140513T0951
+//v3.0 copyright Comine.com 20150810M1138
 #ifndef MStringArray_h
 #define MStringArray_h
 

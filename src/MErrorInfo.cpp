@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v2.5  copyright Comine.com 20140531S1820
+//v2.6  copyright Comine.com 20160822M0130
 #include "MStdLib.h"
 ///////////////////////////////////////////
 #ifdef MSTDLIB_API_WINDOWS
