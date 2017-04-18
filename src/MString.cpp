@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-//v3.0 copyright Comine.com 20150810M0942
+//v3.2 copyright Comine.com 20170409U0957
 #include "MStdLib.h"
 #include "TVector.h"
 #include "MIReader.h"
@@ -75,7 +75,7 @@ MString::MString(const wchar_t *str)
 
 
 ///////////////////////////////////////////////
-MString::MString(MString &str)
+MString::MString(const MString &str)
 	{
 	ClearObject();
 	if(Create(str.mString.Get() )==false)
@@ -148,7 +148,7 @@ bool MString::Create(const wchar_t *str)
 
 
 ///////////////////////////////////////////////
-bool MString::Create(MString &str)
+bool MString::Create(const MString &str)
 	{
 	return Create(str.mString.Get());
 	}
@@ -589,6 +589,20 @@ bool MString::Write(MIWriter &writer) const
 
 	return true;
 	}
+
+/////////////////////////////////////////////////////////////
+bool MString::Zero(void)
+	{
+	const int count=mString.GetCount();
+	for(int i=0;i<count;++i)
+		{
+		mString[i]=0;
+		}
+
+	mLength=0;
+	return true;
+	}
+
 
 //************************************************************************
 //  MString Static Methods
